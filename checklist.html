@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PA Documentation Checklist — CompliAid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f2;
+    --ink: #1a1a1a;
+    --ink-muted: #4A4A4A;
+    --ink-dim: #9a9a8a;
+    --accent: #004c53;
+    --accent-light: #d6ecee;
+    --accent-glow: rgba(0,76,83,0.08);
+    --border: #e2e0d8;
+    --border-light: #eceae2;
+    --card: #ffffff;
+    --surface2: #f0efe9;
+    --green: #1a6b3a;
+    --green-bg: rgba(26,107,58,0.08);
+    --green-border: rgba(26,107,58,0.3);
+    --amber: #8a5e00;
+    --amber-bg: rgba(200,140,0,0.08);
+    --amber-border: rgba(200,140,0,0.3);
+    --red: #8b2020;
+    --cat-a: #004c53;
+    --cat-b: #5c3d8f;
+    --cat-c: #1a6b3a;
+    --cat-d: #8a5e00;
+    --cat-e: #8b2020;
+    --cat-f: #005f7a;
+    --cat-g: #006b5f;
+    --cat-z: #4A4A4A;
+    --font: 'DM Sans', sans-serif;
+    --serif: 'Instrument Serif', serif;
+    --mono: 'DM Mono', monospace;
+    --radius: 10px;
+    --radius-lg: 14px;
+    --nav-h: 64px;
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: var(--nav-h);
+    background: rgba(247,246,242,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+  }
+
+  .nav-links {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    align-items: center;
+  }
+
+  .nav-links a {
+    text-decoration: none;
+    color: var(--ink-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+
+  .nav-links a:hover { color: var(--ink); }
+
+  .nav-cta {
+    background: var(--accent);
+    color: #fff !important;
+    padding: 8px 20px;
+    border-radius: 8px;
+    transition: opacity 0.2s !important;
+  }
+
+  .nav-cta:hover { opacity: 0.88; }
+
+  /* ── PAGE HEADER ── */
+  .page-header {
+    padding: 100px 48px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .page-header-left {}
+
+  .page-tag {
+    display: inline-block;
+    background: var(--accent-light);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 100px;
+    margin-bottom: 16px;
+  }
+
+  .page-header h1 {
+    font-family: var(--serif);
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+
+  .page-header h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+
+  .page-header p {
+    font-size: 0.95rem;
+    color: var(--ink-muted);
+    max-width: 480px;
+    line-height: 1.7;
+  }
+
+  .page-header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+    padding: 9px 20px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 0.88rem;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.15s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+
+  .btn-secondary {
+    background: var(--card);
+    color: var(--ink);
+    padding: 9px 18px;
+    border-radius: 8px;
+    font-family: var(--font);
+    font-size: 0.88rem;
+    font-weight: 500;
+    border: 1.5px solid var(--border);
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-secondary:hover { border-color: var(--ink-muted); transform: translateY(-1px); }
+
+  .export-wrapper { position: relative; }
+
+  .export-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+    min-width: 180px;
+    z-index: 300;
+    overflow: hidden;
+  }
+
+  .export-dropdown button {
+    display: block;
+    width: 100%;
+    padding: 11px 16px;
+    font-family: var(--font);
+    font-size: 0.88rem;
+    color: var(--ink);
+    background: none;
+    border: none;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.12s;
+  }
+
+  .export-dropdown button:hover { background: var(--surface2); }
+
+  /* ── METADATA PANEL ── */
+  .meta-panel {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 48px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+  }
+
+  .meta-label-row {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-muted);
+    margin-bottom: 12px;
+  }
+
+  .meta-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
+  .meta-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    min-width: 160px;
+    flex: 1;
+  }
+
+  .meta-field label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+  }
+
+  .meta-input {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    width: 100%;
+  }
+
+  .meta-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+
+  .meta-input::placeholder { color: var(--ink-dim); }
+
+  /* ── SUMMARY BAR ── */
+  .summary-bar {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 16px 48px;
+    display: flex;
+    gap: 24px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+
+  .summary-stat {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .summary-num {
+    font-family: var(--mono);
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--ink);
+  }
+
+  .summary-stat-label {
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    line-height: 1.3;
+  }
+
+  .summary-divider {
+    width: 1px;
+    height: 32px;
+    background: var(--border);
+  }
+
+  /* ── LAYOUT ── */
+  .layout {
+    display: flex;
+    max-width: 1100px;
+    margin: 0 auto;
+    min-height: calc(100vh - var(--nav-h) - 220px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 230px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    padding: 24px 0;
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+  }
+
+  .sidebar-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-dim);
+    padding: 0 20px 10px;
+  }
+
+  .cat-nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: background 0.12s;
+    border-left: 2px solid transparent;
+    position: relative;
+  }
+
+  .cat-nav-item:hover { background: var(--surface2); }
+
+  .cat-nav-item.active {
+    background: var(--accent-light);
+    border-left-color: var(--accent);
+  }
+
+  .cat-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .cat-nav-label {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    flex: 1;
+  }
+
+  .cat-nav-item.active .cat-nav-label { color: var(--accent); font-weight: 600; }
+
+  .cat-badge {
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    padding: 2px 7px;
+    border-radius: 100px;
+    background: var(--surface2);
+    color: var(--ink-muted);
+  }
+
+  .cat-nav-item.active .cat-badge {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .progress-mini {
+    position: absolute;
+    bottom: 0; left: 2px; right: 0;
+    height: 2px;
+    background: var(--border-light);
+  }
+
+  .progress-mini-fill {
+    height: 100%;
+    background: var(--green);
+    transition: width 0.3s;
+  }
+
+  /* ── MAIN ── */
+  .main { flex: 1; overflow-y: auto; padding-bottom: 60px; }
+
+  .cat-section { display: none; }
+  .cat-section.active { display: block; }
+
+  /* ── CAT HEADER ── */
+  .cat-header {
+    padding: 32px 40px 20px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .cat-title-row { display: flex; align-items: center; gap: 14px; }
+
+  .cat-letter {
+    width: 48px; height: 48px;
+    border-radius: var(--radius);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--mono);
+    font-size: 1.2rem;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  .cat-title-text h2 {
+    font-family: var(--serif);
+    font-size: 1.35rem;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    line-height: 1.2;
+  }
+
+  .cat-title-text p {
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    margin-top: 3px;
+    line-height: 1.5;
+  }
+
+  .progress-block { text-align: right; flex-shrink: 0; }
+
+  .progress-pct {
+    font-family: var(--mono);
+    font-size: 1.8rem;
+    font-weight: 500;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+  }
+
+  .progress-sub { font-size: 0.75rem; color: var(--ink-muted); margin-top: 1px; }
+
+  .progress-bar {
+    width: 110px;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+    margin-left: auto;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--green);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+  }
+
+  /* ── CAT ACTIONS ── */
+  .cat-actions {
+    padding: 12px 40px;
+    border-bottom: 1px solid var(--border-light);
+    display: flex;
+    gap: 10px;
+    background: var(--bg);
+  }
+
+  .btn-xs {
+    font-family: var(--font);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-xs:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+  /* ── SECTIONS ── */
+  .checklist-body { padding: 0 40px; }
+
+  .section {
+    margin-top: 28px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--card);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .section-icon {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .section-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ink);
+    flex: 1;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .section-progress {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    color: var(--ink-muted);
+    background: var(--card);
+    padding: 2px 8px;
+    border-radius: 100px;
+    border: 1px solid var(--border);
+  }
+
+  /* ── CHECK ITEMS ── */
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 18px;
+    border-bottom: 1px solid var(--border-light);
+    transition: background 0.12s;
+  }
+
+  .check-item:last-child { border-bottom: none; }
+  .check-item:hover { background: #fafaf7; }
+
+  .check-item.submitted { background: var(--green-bg); }
+  .check-item.submitted:hover { background: rgba(26,107,58,0.1); }
+
+  .item-name {
+    flex: 1;
+    font-size: 0.88rem;
+    color: var(--ink);
+    line-height: 1.4;
+  }
+
+  .check-item.submitted .item-name {
+    color: var(--green);
+    text-decoration: line-through;
+    text-decoration-color: rgba(26,107,58,0.4);
+  }
+
+  /* STATUS PILL */
+  .status-pill {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 100px;
+    letter-spacing: 0.06em;
+    flex-shrink: 0;
+    min-width: 38px;
+    text-align: center;
+  }
+
+  .status-pill.na {
+    background: var(--surface2);
+    color: var(--ink-dim);
+    border: 1px solid var(--border);
+  }
+
+  .status-pill.required {
+    background: var(--amber-bg);
+    color: var(--amber);
+    border: 1px solid var(--amber-border);
+  }
+
+  .status-pill.submitted {
+    background: var(--green-bg);
+    color: var(--green);
+    border: 1px solid var(--green-border);
+  }
+
+  /* TOGGLE GROUP */
+  .toggle-group {
+    display: flex;
+    gap: 4px;
+    flex-shrink: 0;
+  }
+
+  .toggle-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1.5px solid var(--border);
+    background: var(--card);
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    font-weight: 500;
+    color: var(--ink-muted);
+    cursor: pointer;
+    transition: all 0.12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+  .toggle-btn.r-active {
+    background: var(--amber-bg);
+    border-color: var(--amber-border);
+    color: var(--amber);
+  }
+
+  .toggle-btn.s-active {
+    background: var(--green-bg);
+    border-color: var(--green-border);
+    color: var(--green);
+  }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    border-top: 1px solid var(--border);
+    padding: 28px 48px;
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .page-footer a { color: var(--ink-muted); text-decoration: none; }
+  .page-footer a:hover { color: var(--ink); }
+
+  /* ── PRINT ── */
+  @media print {
+    nav, .page-header-actions, .cat-actions, .toggle-group, .sidebar { display: none !important; }
+    .layout { display: block; }
+    .main { overflow: visible; }
+    .cat-section { display: none !important; }
+    .cat-section.active { display: block !important; }
+    .cat-section.print-all { display: block !important; }
+    .page-header { padding-top: 20px; }
+    body { background: #fff; }
+    .section { break-inside: avoid; }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 720px) {
+    nav { padding: 0 20px; }
+    .page-header { padding: 90px 20px 28px; }
+    .meta-panel { padding: 20px; }
+    .summary-bar { padding: 14px 20px; }
+    .layout { flex-direction: column; }
+    .sidebar {
+      width: 100%;
+      position: static;
+      height: auto;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      padding: 12px 0;
+      display: flex;
+      overflow-x: auto;
+      gap: 0;
+    }
+    .cat-nav-item { flex-shrink: 0; border-left: none; border-bottom: 2px solid transparent; }
+    .cat-nav-item.active { border-bottom-color: var(--accent); border-left: none; }
+    .sidebar-label { display: none; }
+    .checklist-body { padding: 0 16px; }
+    .cat-header { padding: 20px 16px; }
+    .cat-actions { padding: 10px 16px; }
+    .page-footer { padding: 24px 20px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a href="index.html" class="nav-logo">
+    <img src="CompliAid.png" alt="CompliAid" style="height:30px;width:auto;" />
+  </a>
+  <ul class="nav-links">
+    <li><a href="react.html">REACT</a></li>
+    <li><a href="checklist.html" style="color:var(--accent);font-weight:600;">Checklist</a></li>
+    <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
+    <li><a href="react.html" class="nav-cta">Try REACT</a></li>
+  </ul>
+</nav>
+
+<!-- PAGE HEADER -->
+<div class="page-header">
+  <div class="page-header-left">
+    <span class="page-tag">PA Documentation Tool</span>
+    <h1>Project Worksheet<br /><em>Documentation Checklist</em></h1>
+    <p>Track required and submitted documents across all FEMA PA Categories for an active project worksheet.</p>
+  </div>
+  <div class="page-header-actions">
+    <button class="btn-secondary" onclick="resetAll()">↺ Reset</button>
+    <button class="btn-secondary" onclick="markAllRequired()">Mark All Required</button>
+    <div class="export-wrapper" id="exportMenu">
+      <button class="btn-primary" onclick="toggleExportMenu()">Export ↓</button>
+      <div class="export-dropdown" id="exportDropdown">
+        <button onclick="printCurrentCat()">Print Current Category</button>
+        <button onclick="printAll()">Print All Categories</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- METADATA -->
+<div class="meta-panel">
+  <div class="meta-label-row">Project Details</div>
+  <div class="meta-row">
+    <div class="meta-field">
+      <label>Applicant / Subrecipient</label>
+      <input class="meta-input" type="text" id="applicant" placeholder="e.g. City of Roanoke" />
+    </div>
+    <div class="meta-field">
+      <label>Project Worksheet #</label>
+      <input class="meta-input" type="text" id="pw" placeholder="e.g. PW-0042" />
+    </div>
+    <div class="meta-field">
+      <label>Disaster Declaration #</label>
+      <input class="meta-input" type="text" id="dr" placeholder="e.g. DR-4812-VA" />
+    </div>
+    <div class="meta-field">
+      <label>Date</label>
+      <input class="meta-input" type="date" id="date" />
+    </div>
+    <div class="meta-field">
+      <label>Prepared By</label>
+      <input class="meta-input" type="text" id="preparer" placeholder="e.g. J. Moore" />
+    </div>
+  </div>
+</div>
+
+<!-- SUMMARY BAR -->
+<div class="summary-bar">
+  <div class="summary-stat">
+    <div class="summary-num" id="totalRequired">0</div>
+    <div class="summary-stat-label">Total<br />Flagged</div>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-stat">
+    <div class="summary-num" id="totalSubmitted">0</div>
+    <div class="summary-stat-label">Docs<br />Submitted</div>
+  </div>
+  <div class="summary-divider"></div>
+  <div class="summary-stat">
+    <div class="summary-num" id="totalOutstanding">0</div>
+    <div class="summary-stat-label">Still<br />Outstanding</div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-label">Categories</div>
+  </div>
+
+  <!-- MAIN -->
+  <div class="main" id="catContent"></div>
+
+</div>
+
+<!-- FOOTER -->
+<footer class="page-footer">
+  <span>© 2026 CompliAid</span>
+  <a href="index.html">← Back to CompliAid</a>
+  <span>Built for emergency management professionals.</span>
+</footer>
+
+<script>
+const CATS = [
+  {
+    id: 'cat-a', letter: 'A', color: '#004c53',
+    title: 'Debris Removal',
+    desc: 'Documentation for debris removal operations and related contracts.',
+    sections: [
+      {
+        id: 'eligibility', title: 'Eligibility Documentation',
+        items: ['Threat to Life/Safety Documentation','Legal Responsibility Documentation','Right-of-Entry Permits','Roads/Property Ownership Documentation']
+      },
+      {
+        id: 'labor', title: 'Labor Documentation',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'equipment', title: 'Equipment Documentation',
+        items: ['Force Account Equipment Summary','Equipment Logs','FEMA Equipment Rates Documentation']
+      },
+      {
+        id: 'contract-a', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)','Debris Load Tickets']
+      },
+      {
+        id: 'monitoring', title: 'Debris Monitoring',
+        items: ['Monitoring Logs','Monitor Certifications','Debris Management Site Documentation']
+      }
+    ]
+  },
+  {
+    id: 'cat-b', letter: 'B', color: '#5c3d8f',
+    title: 'Emergency Protective Measures',
+    desc: 'Documentation for emergency actions taken to eliminate or reduce immediate threats.',
+    sections: [
+      {
+        id: 'threat', title: 'Threat Documentation',
+        items: ['Threat to Life/Safety Narrative','Emergency Declaration / Local Emergency Order','Situation Reports']
+      },
+      {
+        id: 'labor-b', title: 'Labor Documentation',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates','Volunteer Documentation (IS Rate)']
+      },
+      {
+        id: 'equipment-b', title: 'Equipment Documentation',
+        items: ['Force Account Equipment Summary','Equipment Logs','FEMA Equipment Rates Documentation']
+      },
+      {
+        id: 'materials-b', title: 'Materials',
+        items: ['Material Usage Summary','Receipts / Purchase Orders']
+      },
+      {
+        id: 'contract-b', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)']
+      },
+      {
+        id: 'shelter', title: 'Shelter / Lodging (if applicable)',
+        items: ['Shelter Registration Records','Hotel/Motel Receipts','Shelter Agreement']
+      }
+    ]
+  },
+  {
+    id: 'cat-c', letter: 'C', color: '#1a6b3a',
+    title: 'Roads & Bridges',
+    desc: 'Documentation for repair or replacement of roads, bridges, and associated drainage.',
+    sections: [
+      {
+        id: 'pre', title: 'Pre-Disaster Condition',
+        items: ['Pre-Disaster Photos','Maintenance Records','As-Built Plans (if available)']
+      },
+      {
+        id: 'damage-c', title: 'Damage Documentation',
+        items: ['Post-Disaster Photos','Damage Description & Dimensions','Engineer Damage Assessment']
+      },
+      {
+        id: 'labor-c', title: 'Force Account Labor',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'equipment-c', title: 'Force Account Equipment',
+        items: ['Force Account Equipment Summary','Equipment Logs']
+      },
+      {
+        id: 'contract-c', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)','Change Orders (if any)']
+      }
+    ]
+  },
+  {
+    id: 'cat-d', letter: 'D', color: '#8a5e00',
+    title: 'Water Control Facilities',
+    desc: 'Documentation for repair of dams, levees, channels, and drainage structures.',
+    sections: [
+      {
+        id: 'pre-d', title: 'Pre-Disaster Condition',
+        items: ['Pre-Disaster Photos','Maintenance Records','Inspection Reports']
+      },
+      {
+        id: 'damage-d', title: 'Damage Documentation',
+        items: ['Post-Disaster Photos','Damage Description & Dimensions','Engineer Assessment']
+      },
+      {
+        id: 'labor-d', title: 'Force Account Labor',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'contract-d', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Invoice(s)']
+      }
+    ]
+  },
+  {
+    id: 'cat-e', letter: 'E', color: '#8b2020',
+    title: 'Buildings & Equipment',
+    desc: 'Documentation for repair or replacement of buildings, contents, and equipment.',
+    sections: [
+      {
+        id: 'ownership', title: 'Ownership & Eligibility',
+        items: ['Proof of Ownership / Lease','Facility Function Documentation','Insurance Policy / Coverage Documentation']
+      },
+      {
+        id: 'pre-e', title: 'Pre-Disaster Condition',
+        items: ['Pre-Disaster Photos','Inventory Records','Maintenance History']
+      },
+      {
+        id: 'damage-e', title: 'Damage Documentation',
+        items: ['Post-Disaster Photos','Damage Description & Dimensions','Engineer or Contractor Assessment']
+      },
+      {
+        id: 'labor-e', title: 'Force Account Labor',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'contract-e', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)','Change Orders (if any)']
+      }
+    ]
+  },
+  {
+    id: 'cat-f', letter: 'F', color: '#005f7a',
+    title: 'Utilities',
+    desc: 'Documentation for repair or restoration of water, sewer, and other utility systems.',
+    sections: [
+      {
+        id: 'ownership-f', title: 'Ownership & Eligibility',
+        items: ['Proof of Ownership / Responsibility','System Maps / As-Builts','Insurance Documentation']
+      },
+      {
+        id: 'damage-f', title: 'Damage Documentation',
+        items: ['Post-Disaster Photos','Damage Description & Dimensions','Engineer Assessment']
+      },
+      {
+        id: 'labor-f', title: 'Force Account Labor',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'equipment-f', title: 'Force Account Equipment',
+        items: ['Force Account Equipment Summary','Equipment Logs']
+      },
+      {
+        id: 'contract-f', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)']
+      }
+    ]
+  },
+  {
+    id: 'cat-g', letter: 'G', color: '#006b5f',
+    title: 'Parks, Recreational & Other',
+    desc: 'Documentation for repair of parks, recreational facilities, and other eligible facilities.',
+    sections: [
+      {
+        id: 'eligibility-g', title: 'Eligibility Documentation',
+        items: ['Ownership Documentation','Facility Open to General Public Documentation','Insurance Documentation']
+      },
+      {
+        id: 'damage-g', title: 'Damage Documentation',
+        items: ['Post-Disaster Photos','Damage Description & Dimensions','Assessment Report']
+      },
+      {
+        id: 'labor-g', title: 'Force Account Labor',
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates']
+      },
+      {
+        id: 'contract-g', title: 'Contract / Procurement',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Invoice(s)']
+      }
+    ]
+  },
+  {
+    id: 'cat-z', letter: 'Z', color: '#4A4A4A',
+    title: 'Direct Administrative Costs',
+    desc: 'Documentation for costs directly tied to administering a specific project.',
+    sections: [
+      {
+        id: 'labor-z', title: 'Staff Labor',
+        items: ['Force Account Labor Summary','Employee Time Records (per project)','Fringe Benefit Rates','Job Description / Role Documentation']
+      },
+      {
+        id: 'fa-mat', title: 'Materials / Supplies',
+        items: ['Material Usage Summary','Receipts']
+      },
+      {
+        id: 'contract-z', title: 'General Documentation / Contract',
+        items: ['Procurement Policy','Procurement Documentation','Contract','Bid Documents','Invoice(s)']
+      }
+    ]
+  }
+];
+
+let state = {};
+
+function getItemKey(catId, sectionId, itemIdx) {
+  return `${catId}__${sectionId}__${itemIdx}`;
+}
+
+function getItemState(key) {
+  return state[key] || 'none';
+}
+
+function renderItemState(key) {
+  const rBtn = document.getElementById('r_' + key);
+  const sBtn = document.getElementById('s_' + key);
+  const row = document.getElementById('row_' + key);
+  const pill = document.getElementById('pill_' + key);
+  if (!rBtn) return;
+  const s = getItemState(key);
+  rBtn.classList.toggle('r-active', s === 'required');
+  sBtn.classList.toggle('s-active', s === 'submitted');
+  row.classList.toggle('submitted', s === 'submitted');
+  if (pill) {
+    if (s === 'required') { pill.className = 'status-pill required'; pill.textContent = 'REQ'; }
+    else if (s === 'submitted') { pill.className = 'status-pill submitted'; pill.textContent = 'SUB'; }
+    else { pill.className = 'status-pill na'; pill.textContent = '—'; }
+  }
+}
+
+function updateProgress() {
+  CATS.forEach(cat => {
+    let sub = 0, total = 0;
+    cat.sections.forEach(sec => {
+      sec.items.forEach((_, idx) => {
+        const key = getItemKey(cat.id, sec.id, idx);
+        const s = getItemState(key);
+        total++;
+        if (s === 'submitted') sub++;
+      });
+    });
+    const pct = total > 0 ? Math.round((sub / total) * 100) : 0;
+    const pctEl = document.getElementById(`pct_${cat.id}`);
+    const barEl = document.getElementById(`bar_${cat.id}`);
+    const miniEl = document.getElementById(`mini_${cat.id}`);
+    const badgeEl = document.getElementById(`badge_${cat.id}`);
+    if (pctEl) pctEl.textContent = pct + '%';
+    if (barEl) barEl.style.width = pct + '%';
+    if (miniEl) miniEl.style.width = pct + '%';
+    if (badgeEl) badgeEl.textContent = `${sub}/${total}`;
+    cat.sections.forEach(sec => {
+      let ss = 0, st = sec.items.length;
+      sec.items.forEach((_, idx) => {
+        const key = getItemKey(cat.id, sec.id, idx);
+        if (getItemState(key) === 'submitted') ss++;
+      });
+      const spEl = document.getElementById(`secprog_${cat.id}_${sec.id}`);
+      if (spEl) spEl.textContent = `${ss}/${st}`;
+    });
+  });
+
+  let totalReq = 0, totalSub = 0;
+  Object.values(state).forEach(v => {
+    if (v === 'required') totalReq++;
+    if (v === 'submitted') totalSub++;
+  });
+  document.getElementById('totalRequired').textContent = totalReq + totalSub;
+  document.getElementById('totalSubmitted').textContent = totalSub;
+  document.getElementById('totalOutstanding').textContent = totalReq;
+}
+
+function cycleToRequired(key) {
+  const cur = getItemState(key);
+  state[key] = cur === 'required' ? 'none' : 'required';
+  renderItemState(key);
+  updateProgress();
+}
+
+function cycleToSubmitted(key) {
+  const cur = getItemState(key);
+  state[key] = cur === 'submitted' ? 'required' : 'submitted';
+  renderItemState(key);
+  updateProgress();
+}
+
+function resetAll() {
+  if (!confirm('Reset all checklist statuses? This cannot be undone.')) return;
+  state = {};
+  document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('r-active','s-active'));
+  document.querySelectorAll('.check-item').forEach(r => r.classList.remove('submitted'));
+  document.querySelectorAll('.status-pill').forEach(p => { p.className = 'status-pill na'; p.textContent = '—'; });
+  updateProgress();
+}
+
+function markAllRequired() {
+  const activeCat = document.querySelector('.cat-section.active');
+  if (!activeCat) return;
+  const catId = activeCat.dataset.cat;
+  const cat = CATS.find(c => c.id === catId);
+  cat.sections.forEach(sec => {
+    sec.items.forEach((_, idx) => {
+      const key = getItemKey(catId, sec.id, idx);
+      if (getItemState(key) === 'none') {
+        state[key] = 'required';
+        renderItemState(key);
+      }
+    });
+  });
+  updateProgress();
+}
+
+function switchCat(catId) {
+  document.querySelectorAll('.cat-section').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.cat-nav-item').forEach(el => el.classList.remove('active'));
+  document.getElementById('cat_' + catId).classList.add('active');
+  document.getElementById('nav_' + catId).classList.add('active');
+}
+
+function toggleExportMenu() {
+  const d = document.getElementById('exportDropdown');
+  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+}
+
+document.addEventListener('click', function(e) {
+  const menu = document.getElementById('exportMenu');
+  if (menu && !menu.contains(e.target)) {
+    document.getElementById('exportDropdown').style.display = 'none';
+  }
+});
+
+function printCurrentCat() {
+  document.getElementById('exportDropdown').style.display = 'none';
+  window.print();
+}
+
+function printAll() {
+  document.getElementById('exportDropdown').style.display = 'none';
+  const sections = document.querySelectorAll('.cat-section');
+  sections.forEach(s => s.classList.add('print-all'));
+  const style = document.createElement('style');
+  style.id = 'print-all-style';
+  style.textContent = '@media print { .cat-section.print-all { display: block !important; } }';
+  document.head.appendChild(style);
+  window.print();
+  sections.forEach(s => s.classList.remove('print-all'));
+  document.getElementById('print-all-style').remove();
+}
+
+function build() {
+  const sidebar = document.getElementById('sidebar');
+  const content = document.getElementById('catContent');
+
+  document.getElementById('date').valueAsDate = new Date();
+
+  CATS.forEach((cat, ci) => {
+    // Sidebar
+    const navItem = document.createElement('div');
+    navItem.className = 'cat-nav-item' + (ci === 0 ? ' active' : '');
+    navItem.id = 'nav_' + cat.id;
+    navItem.onclick = () => switchCat(cat.id);
+    navItem.innerHTML = `
+      <div class="cat-dot" style="background:${cat.color}"></div>
+      <span class="cat-nav-label">Cat. ${cat.letter} — ${cat.title.split(' ').slice(0,3).join(' ')}</span>
+      <span class="cat-badge" id="badge_${cat.id}">0/0</span>
+      <div class="progress-mini"><div class="progress-mini-fill" id="mini_${cat.id}" style="width:0%"></div></div>
+    `;
+    sidebar.appendChild(navItem);
+
+    // Content section
+    const section = document.createElement('div');
+    section.className = 'cat-section' + (ci === 0 ? ' active' : '');
+    section.id = 'cat_' + cat.id;
+    section.dataset.cat = cat.id;
+
+    let html = `
+      <div class="cat-header">
+        <div class="cat-title-row">
+          <div class="cat-letter" style="background:${cat.color}18;border:1.5px solid ${cat.color}40;color:${cat.color}">${cat.letter}</div>
+          <div class="cat-title-text">
+            <h2>Category ${cat.letter}: ${cat.title}</h2>
+            <p>${cat.desc}</p>
+          </div>
+        </div>
+        <div class="progress-block">
+          <div class="progress-pct" id="pct_${cat.id}">0%</div>
+          <div class="progress-sub">submitted</div>
+          <div class="progress-bar"><div class="progress-bar-fill" id="bar_${cat.id}" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="cat-actions">
+        <button class="btn-xs" onclick="markAllRequired()">Mark All Required</button>
+      </div>
+      <div class="checklist-body">
+    `;
+
+    cat.sections.forEach(sec => {
+      html += `
+        <div class="section">
+          <div class="section-header">
+            <div class="section-icon" style="background:${cat.color}"></div>
+            <span class="section-title">${sec.title}</span>
+            <span class="section-progress" id="secprog_${cat.id}_${sec.id}">0/${sec.items.length}</span>
+          </div>
+      `;
+      sec.items.forEach((item, idx) => {
+        const key = getItemKey(cat.id, sec.id, idx);
+        html += `
+          <div class="check-item" id="row_${key}">
+            <span class="item-name">${item}</span>
+            <span class="status-pill na" id="pill_${key}">—</span>
+            <div class="toggle-group">
+              <button class="toggle-btn" id="r_${key}" title="Mark Required" onclick="cycleToRequired('${key}')">R</button>
+              <button class="toggle-btn" id="s_${key}" title="Mark Submitted" onclick="cycleToSubmitted('${key}')">S</button>
+            </div>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    });
+
+    html += `</div>`;
+    section.innerHTML = html;
+    content.appendChild(section);
+  });
+
+  updateProgress();
+}
+
+build();
+</script>
+</body>
+</html>

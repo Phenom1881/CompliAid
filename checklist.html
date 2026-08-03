@@ -4,7 +4,31 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PA Documentation Checklist — CompliAid</title>
+<meta name="description" content="Track required and submitted documents across FEMA Public Assistance Categories A–G for an active project worksheet. Progress saves on your device; export to CSV or print." />
+<link rel="canonical" href="https://compliaid.com/checklist.html" />
+<meta name="theme-color" content="#004c53" />
+
+<!-- Icons -->
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="assets/favicon-256.png" sizes="256x256" type="image/png" />
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+<!-- Open Graph / Twitter -->
+<meta property="og:type" content="website" />
+<meta property="og:site_name" content="CompliAid" />
+<meta property="og:title" content="PA Documentation Checklist — CompliAid" />
+<meta property="og:description" content="Track required and submitted documents across FEMA PA Categories A–G for an active project worksheet." />
+<meta property="og:url" content="https://compliaid.com/checklist.html" />
+<meta property="og:image" content="https://compliaid.com/assets/og-compliaid.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="PA Documentation Checklist — CompliAid" />
+<meta name="twitter:description" content="Track required and submitted documents across FEMA PA Categories A–G for an active project worksheet." />
+<meta name="twitter:image" content="https://compliaid.com/assets/og-compliaid.png" />
+
 <link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -13,7 +37,7 @@
     --bg: #f7f6f2;
     --ink: #1a1a1a;
     --ink-muted: #4A4A4A;
-    --ink-dim: #9a9a8a;
+    --ink-dim: #6b6a5e;
     --accent: #004c53;
     --accent-light: #d6ecee;
     --accent-glow: rgba(0,76,83,0.08);
@@ -323,6 +347,68 @@
     height: 32px;
     background: var(--border);
   }
+
+  /* ── TOOLBAR ── */
+  .toolbar {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 14px 48px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toolbar-search {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 220px;
+    max-width: 420px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 8px 12px;
+    color: var(--ink-muted);
+    transition: border-color 0.2s;
+  }
+
+  .toolbar-search:focus-within { border-color: var(--accent); }
+  .toolbar-search svg { flex-shrink: 0; opacity: 0.7; }
+
+  .toolbar-search input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-family: var(--font);
+    font-size: 0.9rem;
+    color: var(--ink);
+    width: 100%;
+  }
+
+  .toolbar-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.88rem;
+    color: var(--ink-muted);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toolbar-toggle input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+
+  .toolbar-hint {
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    font-family: var(--mono);
+    margin-left: auto;
+  }
+
+  .check-item.filtered-hidden,
+  .section.filtered-hidden { display: none; }
 
   /* ── LAYOUT ── */
   .layout {
@@ -672,9 +758,43 @@
   .page-footer a { color: var(--ink-muted); text-decoration: none; }
   .page-footer a:hover { color: var(--ink); }
 
+  /* Visually hidden but available to assistive tech */
+  .sr-only {
+    position: absolute; width: 1px; height: 1px;
+    padding: 0; margin: -1px; overflow: hidden;
+    clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+
+  /* Skip link — appears on keyboard focus */
+  .skip-link {
+    position: absolute; left: 12px; top: -48px;
+    z-index: 300; background: var(--accent); color: #fff;
+    padding: 8px 16px; border-radius: 8px; text-decoration: none;
+    font-size: 0.85rem; font-weight: 600;
+    transition: top 0.18s ease;
+  }
+  .skip-link:focus { top: 12px; }
+
+  /* Consistent keyboard focus ring */
+  a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  /* Print-only artifacts — hidden on screen, revealed by @media print */
+  .print-only { display: none; }
+
+  .print-header { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 2px solid var(--accent); }
+  .print-header .ph-title { font-family: var(--serif); font-size: 1.6rem; color: var(--accent); margin-bottom: 8px; }
+  .print-header .ph-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px 24px; font-size: 0.82rem; }
+  .print-header .ph-grid div span { color: var(--ink-muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.04em; font-size: 0.7rem; display: block; }
+  .print-header .ph-grid div strong { font-weight: 600; }
+
+  .print-legend { margin: 10px 0 4px; font-size: 0.75rem; color: var(--ink-muted); font-family: var(--mono); }
+
   /* ── PRINT ── */
   @media print {
-    nav, .page-header-actions, .cat-actions, .toggle-group, .sidebar { display: none !important; }
+    nav, .page-header-actions, .cat-actions, .toggle-group, .sidebar, .meta-panel, .toolbar { display: none !important; }
     .layout { display: block; }
     .main { overflow: visible; }
     .cat-section { display: none !important; }
@@ -683,6 +803,8 @@
     .page-header { padding-top: 20px; }
     body { background: #fff; }
     .section { break-inside: avoid; }
+    .print-only { display: block; }
+    .status-pill.na { opacity: 0.4; }
   }
 
   /* ── RESPONSIVE ── */
@@ -711,14 +833,26 @@
     .cat-actions { padding: 10px 16px; }
     .page-footer { padding: 24px 20px; }
   }
+
+  @media (max-width: 560px) {
+    nav { padding: 0 18px; }
+    .nav-links { gap: 16px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+    .nav-links::-webkit-scrollbar { display: none; }
+    .nav-links a { font-size: 0.82rem; white-space: nowrap; }
+    .toolbar { padding: 12px 16px; }
+    .toolbar-hint { margin-left: 0; }
+  }
 </style>
 </head>
 <body>
 
+<a class="skip-link" href="#catContent">Skip to checklist</a>
+<div class="sr-only" role="status" aria-live="polite" id="srAnnounce"></div>
+
 <!-- NAV -->
 <nav>
   <a href="index.html" class="nav-logo">
-    <img src="CompliAid.png" alt="CompliAid" style="height:30px;width:auto;" />
+    <img src="CompliAid.png" alt="CompliAid" width="30" height="30" decoding="async" style="height:30px;width:auto;" />
   </a>
   <ul class="nav-links">
     <li><a href="react.html">REACT</a></li>
@@ -728,6 +862,9 @@
   </ul>
 </nav>
 
+<!-- PRINT-ONLY HEADER (populated from project details before printing) -->
+<div class="print-only print-header" id="printHeader" aria-hidden="true"></div>
+
 <!-- PAGE HEADER -->
 <div class="page-header">
   <div class="page-header-left">
@@ -736,13 +873,14 @@
     <p>Track required and submitted documents across all FEMA PA Categories for an active project worksheet.</p>
   </div>
   <div class="page-header-actions">
-    <button class="btn-secondary" onclick="resetAll()">↺ Reset</button>
-    <button class="btn-secondary" onclick="markAllRequired()">Mark All Required</button>
+    <button type="button" class="btn-secondary" onclick="resetAll()"><span aria-hidden="true">↺</span> Reset</button>
+    <button type="button" class="btn-secondary" onclick="markAllRequired()">Mark All Required</button>
     <div class="export-wrapper" id="exportMenu">
-      <button class="btn-primary" onclick="toggleExportMenu()">Export ↓</button>
-      <div class="export-dropdown" id="exportDropdown">
-        <button onclick="printCurrentCat()">Print Current Category</button>
-        <button onclick="printAll()">Print All Categories</button>
+      <button type="button" class="btn-primary" onclick="toggleExportMenu()" aria-haspopup="true" aria-expanded="false" id="exportBtn">Export <span aria-hidden="true">↓</span></button>
+      <div class="export-dropdown" id="exportDropdown" role="menu">
+        <button type="button" role="menuitem" onclick="exportCSV()">Download CSV (all categories)</button>
+        <button type="button" role="menuitem" onclick="printCurrentCat()">Print / PDF — current category</button>
+        <button type="button" role="menuitem" onclick="printAll()">Print / PDF — all categories</button>
       </div>
     </div>
   </div>
@@ -753,23 +891,23 @@
   <div class="meta-label-row">Project Details</div>
   <div class="meta-row">
     <div class="meta-field">
-      <label>Applicant / Subrecipient</label>
+      <label for="applicant">Applicant / Subrecipient</label>
       <input class="meta-input" type="text" id="applicant" placeholder="e.g. City of Roanoke" />
     </div>
     <div class="meta-field">
-      <label>Project Worksheet #</label>
+      <label for="pw">Project Worksheet #</label>
       <input class="meta-input" type="text" id="pw" placeholder="e.g. PW-0042" />
     </div>
     <div class="meta-field">
-      <label>Disaster Declaration #</label>
+      <label for="dr">Disaster Declaration #</label>
       <input class="meta-input" type="text" id="dr" placeholder="e.g. DR-4812-VA" />
     </div>
     <div class="meta-field">
-      <label>Date</label>
+      <label for="date">Date</label>
       <input class="meta-input" type="date" id="date" />
     </div>
     <div class="meta-field">
-      <label>Prepared By</label>
+      <label for="preparer">Prepared By</label>
       <input class="meta-input" type="text" id="preparer" placeholder="e.g. J. Moore" />
     </div>
   </div>
@@ -793,6 +931,19 @@
   </div>
 </div>
 
+<!-- TOOLBAR -->
+<div class="toolbar">
+  <div class="toolbar-search">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+    <input type="search" id="itemSearch" placeholder="Filter documents in this category…" aria-label="Filter documents in the current category by name" />
+  </div>
+  <label class="toolbar-toggle">
+    <input type="checkbox" id="outstandingOnly" />
+    <span>Outstanding only</span>
+  </label>
+  <span class="toolbar-hint" id="filterHint" aria-live="polite"></span>
+</div>
+
 <!-- LAYOUT -->
 <div class="layout">
 
@@ -802,7 +953,7 @@
   </div>
 
   <!-- MAIN -->
-  <div class="main" id="catContent"></div>
+  <div class="main" id="catContent" tabindex="-1"></div>
 
 </div>
 
@@ -1023,6 +1174,39 @@ const CATS = [
 
 let state = {};
 
+const STORAGE_KEY = 'compliaid.checklist.v1';
+const META_FIELDS = ['applicant', 'pw', 'dr', 'date', 'preparer'];
+
+function saveState() {
+  try {
+    const meta = {};
+    META_FIELDS.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) meta[id] = el.value;
+    });
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ v: 1, state, meta }));
+  } catch (e) { /* storage unavailable (private mode, quota) — degrade to in-memory */ }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data && typeof data.state === 'object') state = data.state || {};
+    if (data && data.meta) {
+      META_FIELDS.forEach(id => {
+        const el = document.getElementById(id);
+        if (el && data.meta[id] != null && data.meta[id] !== '') el.value = data.meta[id];
+      });
+    }
+  } catch (e) { state = {}; }
+}
+
+function clearStoredState() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) { /* no-op */ }
+}
+
 function getItemKey(catId, sectionId, itemIdx) {
   return `${catId}__${sectionId}__${itemIdx}`;
 }
@@ -1030,6 +1214,18 @@ function getItemKey(catId, sectionId, itemIdx) {
 function getItemState(key) {
   return state[key] || 'none';
 }
+
+function announce(msg) {
+  const el = document.getElementById('srAnnounce');
+  if (el) el.textContent = msg;
+}
+
+function itemNameFor(key) {
+  const el = document.querySelector('#row_' + key + ' .item-name');
+  return el ? el.textContent : 'Item';
+}
+
+const STATUS_WORD = { required: 'required', submitted: 'submitted', none: 'not applicable' };
 
 function renderItemState(key) {
   const rBtn = document.getElementById('r_' + key);
@@ -1040,6 +1236,8 @@ function renderItemState(key) {
   const s = getItemState(key);
   rBtn.classList.toggle('r-active', s === 'required');
   sBtn.classList.toggle('s-active', s === 'submitted');
+  rBtn.setAttribute('aria-pressed', s === 'required' ? 'true' : 'false');
+  sBtn.setAttribute('aria-pressed', s === 'submitted' ? 'true' : 'false');
   row.classList.toggle('submitted', s === 'submitted');
   if (pill) {
     if (s === 'required') { pill.className = 'status-pill required'; pill.textContent = 'REQ'; }
@@ -1092,8 +1290,12 @@ function updateProgress() {
 function cycleToRequired(key) {
   const cur = getItemState(key);
   state[key] = cur === 'required' ? 'none' : 'required';
+  if (state[key] === 'none') delete state[key];
   renderItemState(key);
   updateProgress();
+  saveState();
+  announce(`${itemNameFor(key)} marked ${STATUS_WORD[getItemState(key)]}`);
+  if (filters.outstandingOnly) applyFilters();
 }
 
 function cycleToSubmitted(key) {
@@ -1101,15 +1303,20 @@ function cycleToSubmitted(key) {
   state[key] = cur === 'submitted' ? 'required' : 'submitted';
   renderItemState(key);
   updateProgress();
+  saveState();
+  announce(`${itemNameFor(key)} marked ${STATUS_WORD[getItemState(key)]}`);
+  if (filters.outstandingOnly) applyFilters();
 }
 
 function resetAll() {
-  if (!confirm('Reset all checklist statuses? This cannot be undone.')) return;
+  if (!confirm('Reset all checklist statuses? This clears your saved progress on this device and cannot be undone.')) return;
   state = {};
+  clearStoredState();
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('r-active','s-active'));
   document.querySelectorAll('.check-item').forEach(r => r.classList.remove('submitted'));
   document.querySelectorAll('.status-pill').forEach(p => { p.className = 'status-pill na'; p.textContent = '—'; });
   updateProgress();
+  applyFilters();
 }
 
 function markAllRequired() {
@@ -1127,6 +1334,8 @@ function markAllRequired() {
     });
   });
   updateProgress();
+  saveState();
+  applyFilters();
 }
 
 function switchCat(catId) {
@@ -1134,27 +1343,95 @@ function switchCat(catId) {
   document.querySelectorAll('.cat-nav-item').forEach(el => el.classList.remove('active'));
   document.getElementById('cat_' + catId).classList.add('active');
   document.getElementById('nav_' + catId).classList.add('active');
+  applyFilters();
+}
+
+const filters = { query: '', outstandingOnly: false };
+
+function applyFilters() {
+  const active = document.querySelector('.cat-section.active');
+  if (!active) return;
+  const q = filters.query.trim().toLowerCase();
+  let visibleCount = 0;
+  active.querySelectorAll('.section').forEach(sec => {
+    let secVisible = 0;
+    sec.querySelectorAll('.check-item').forEach(row => {
+      const key = row.id.replace(/^row_/, '');
+      const nameEl = row.querySelector('.item-name');
+      const name = nameEl ? nameEl.textContent.toLowerCase() : '';
+      const st = getItemState(key);
+      let show = true;
+      if (q && !name.includes(q)) show = false;
+      if (filters.outstandingOnly && st !== 'required') show = false;
+      row.classList.toggle('filtered-hidden', !show);
+      if (show) { secVisible++; visibleCount++; }
+    });
+    sec.classList.toggle('filtered-hidden', secVisible === 0);
+  });
+  const hint = document.getElementById('filterHint');
+  if (hint) hint.textContent = (q || filters.outstandingOnly) ? `${visibleCount} shown` : '';
+}
+
+function setExportOpen(open) {
+  document.getElementById('exportDropdown').style.display = open ? 'block' : 'none';
+  const btn = document.getElementById('exportBtn');
+  if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function toggleExportMenu() {
-  const d = document.getElementById('exportDropdown');
-  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  const open = document.getElementById('exportDropdown').style.display === 'block';
+  setExportOpen(!open);
 }
 
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('exportMenu');
-  if (menu && !menu.contains(e.target)) {
-    document.getElementById('exportDropdown').style.display = 'none';
-  }
+  if (menu && !menu.contains(e.target)) setExportOpen(false);
 });
 
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') setExportOpen(false);
+});
+
+function metaValue(id) {
+  const el = document.getElementById(id);
+  return el && el.value ? el.value.trim() : '';
+}
+
+function buildPrintHeader(scopeLabel) {
+  const applicant = metaValue('applicant') || '—';
+  const pw = metaValue('pw') || '—';
+  const dr = metaValue('dr') || '—';
+  const date = metaValue('date') || '—';
+  const preparer = metaValue('preparer') || '—';
+  document.getElementById('printHeader').innerHTML = `
+    <div class="ph-title">PA Documentation Checklist</div>
+    <div class="ph-grid">
+      <div><span>Applicant / Subrecipient</span><strong>${escapeHtml(applicant)}</strong></div>
+      <div><span>Project Worksheet #</span><strong>${escapeHtml(pw)}</strong></div>
+      <div><span>Disaster Declaration #</span><strong>${escapeHtml(dr)}</strong></div>
+      <div><span>Date</span><strong>${escapeHtml(date)}</strong></div>
+      <div><span>Prepared By</span><strong>${escapeHtml(preparer)}</strong></div>
+      <div><span>Scope</span><strong>${escapeHtml(scopeLabel)}</strong></div>
+    </div>
+    <div class="print-legend">Legend:  R = Required / flagged   ·   S = Submitted   ·   — = Not applicable</div>
+  `;
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function printCurrentCat() {
-  document.getElementById('exportDropdown').style.display = 'none';
+  setExportOpen(false);
+  const active = document.querySelector('.cat-section.active');
+  const cat = active ? CATS.find(c => c.id === active.dataset.cat) : null;
+  buildPrintHeader(cat ? `Category ${cat.letter} — ${cat.title}` : 'Current category');
   window.print();
 }
 
 function printAll() {
-  document.getElementById('exportDropdown').style.display = 'none';
+  setExportOpen(false);
+  buildPrintHeader('All categories');
   const sections = document.querySelectorAll('.cat-section');
   sections.forEach(s => s.classList.add('print-all'));
   const style = document.createElement('style');
@@ -1164,6 +1441,44 @@ function printAll() {
   window.print();
   sections.forEach(s => s.classList.remove('print-all'));
   document.getElementById('print-all-style').remove();
+}
+
+function csvCell(v) {
+  const s = String(v == null ? '' : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+}
+
+function exportCSV() {
+  setExportOpen(false);
+  const statusLabel = { required: 'Required', submitted: 'Submitted', none: 'Not applicable' };
+  const rows = [
+    ['Applicant', metaValue('applicant')],
+    ['Project Worksheet #', metaValue('pw')],
+    ['Disaster Declaration #', metaValue('dr')],
+    ['Date', metaValue('date')],
+    ['Prepared By', metaValue('preparer')],
+    [],
+    ['Category', 'Section', 'Document', 'Status'],
+  ];
+  CATS.forEach(cat => {
+    cat.sections.forEach(sec => {
+      sec.items.forEach((item, idx) => {
+        const s = getItemState(getItemKey(cat.id, sec.id, idx));
+        rows.push([`${cat.letter} — ${cat.title}`, sec.title, item, statusLabel[s] || 'Not applicable']);
+      });
+    });
+  });
+  const csv = rows.map(r => r.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const pw = metaValue('pw').replace(/[^a-z0-9\-_]+/gi, '') || 'checklist';
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `CompliAid-PA-${pw}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function build() {
@@ -1226,11 +1541,11 @@ function build() {
         const key = getItemKey(cat.id, sec.id, idx);
         html += `
           <div class="check-item" id="row_${key}">
-            <span class="item-name">${item}</span>
+            <span class="item-name">${escapeHtml(item)}</span>
             <span class="status-pill na" id="pill_${key}">—</span>
             <div class="toggle-group">
-              <button class="toggle-btn" id="r_${key}" title="Mark Required" onclick="cycleToRequired('${key}')">R</button>
-              <button class="toggle-btn" id="s_${key}" title="Mark Submitted" onclick="cycleToSubmitted('${key}')">S</button>
+              <button class="toggle-btn" type="button" id="r_${key}" aria-pressed="false" aria-label="Mark &quot;${escapeHtml(item)}&quot; as required" title="Mark Required" onclick="cycleToRequired('${key}')">R</button>
+              <button class="toggle-btn" type="button" id="s_${key}" aria-pressed="false" aria-label="Mark &quot;${escapeHtml(item)}&quot; as submitted" title="Mark Submitted" onclick="cycleToSubmitted('${key}')">S</button>
             </div>
           </div>
         `;
@@ -1243,7 +1558,24 @@ function build() {
     content.appendChild(section);
   });
 
+  // Restore any saved progress + project details from this device.
+  loadState();
+  Object.keys(state).forEach(renderItemState);
+
+  // Autosave project-detail fields as they're typed.
+  META_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', saveState);
+  });
+
+  // Wayfinding: search + outstanding-only filter.
+  const searchEl = document.getElementById('itemSearch');
+  const outstandingEl = document.getElementById('outstandingOnly');
+  if (searchEl) searchEl.addEventListener('input', e => { filters.query = e.target.value; applyFilters(); });
+  if (outstandingEl) outstandingEl.addEventListener('change', e => { filters.outstandingOnly = e.target.checked; applyFilters(); });
+
   updateProgress();
+  applyFilters();
 }
 
 build();

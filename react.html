@@ -3,8 +3,32 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>REACT – CompliAid</title>
+  <title>REACT — FEMA PA Compliance Assistant | CompliAid</title>
+  <meta name="description" content="REACT is CompliAid's AI-powered FEMA Public Assistance compliance assistant. Ask questions in plain language and get answers grounded in PA policy." />
+  <link rel="canonical" href="https://compliaid.com/react.html" />
+  <meta name="theme-color" content="#004c53" />
+
+  <!-- Icons -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-256.png" sizes="256x256" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CompliAid" />
+  <meta property="og:title" content="REACT — FEMA PA Compliance Assistant" />
+  <meta property="og:description" content="Ask anything about FEMA Public Assistance. REACT gives grounded, policy-backed answers — fast." />
+  <meta property="og:url" content="https://compliaid.com/react.html" />
+  <meta property="og:image" content="https://compliaid.com/assets/og-compliaid.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="REACT — FEMA PA Compliance Assistant" />
+  <meta name="twitter:description" content="Ask anything about FEMA Public Assistance. REACT gives grounded, policy-backed answers — fast." />
+  <meta name="twitter:image" content="https://compliaid.com/assets/og-compliaid.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,6 +54,16 @@
       display: flex;
       flex-direction: column;
     }
+
+    .skip-link {
+      position: absolute; left: 12px; top: -48px;
+      z-index: 300; background: var(--accent); color: #fff;
+      padding: 8px 16px; border-radius: 8px; text-decoration: none;
+      font-size: 0.85rem; font-weight: 600; transition: top 0.18s ease;
+    }
+    .skip-link:focus { top: 12px; }
+
+    a:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
     /* NAV */
     nav {
@@ -157,9 +191,15 @@
     .bar-dot {
       width: 10px; height: 10px;
       border-radius: 50%;
+      transition: background 0.3s;
     }
     .bar-dot.green { background: #22c55e; }
     .bar-dot.status { background: var(--accent); }
+    .bar-dot.connecting { background: #c8a04b; animation: pulse-dot 1.2s ease-in-out infinite; }
+    .bar-dot.online { background: #22c55e; }
+    .bar-dot.offline { background: var(--ink-muted); }
+
+    @keyframes pulse-dot { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
 
     .bar-label {
       font-size: 0.82rem;
@@ -177,6 +217,41 @@
     .chat-frame-inner {
       flex: 1;
       position: relative;
+    }
+
+    /* Loading skeleton + error fallback for the third-party chat widget */
+    .chat-loading, .chat-error {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      text-align: center;
+      padding: 32px;
+      background: var(--card);
+      color: var(--ink-muted);
+      font-size: 0.9rem;
+    }
+    .chat-loading.hidden { opacity: 0; visibility: hidden; transition: opacity 0.4s, visibility 0.4s; }
+    .chat-error p { max-width: 420px; line-height: 1.6; }
+    .chat-error strong { color: var(--ink); }
+    .chat-error-actions { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; margin-top: 6px; }
+
+    .chat-spinner {
+      width: 30px; height: 30px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: chat-spin 0.8s linear infinite;
+    }
+    @keyframes chat-spin { to { transform: rotate(360deg); } }
+
+    @media (prefers-reduced-motion: reduce) {
+      .chat-spinner { animation: none; }
+      .bar-dot.connecting { animation: none; }
     }
 
     .chat-frame-inner iframe {
@@ -233,22 +308,32 @@
       nav { padding: 16px 24px; }
       .react-header, .chat-wrap, footer { padding-left: 20px; padding-right: 20px; }
     }
+
+    @media (max-width: 560px) {
+      nav { padding: 14px 18px; }
+      .nav-links { gap: 16px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .nav-links a { font-size: 0.82rem; white-space: nowrap; }
+    }
   </style>
 </head>
 <body>
 
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <nav>
     <a href="index.html" class="nav-logo">
-      <img src="CompliAid.png" alt="CompliAid" style="height: 32px; width: auto;" />
+      <img src="CompliAid.png" alt="CompliAid" width="32" height="32" decoding="async" style="height: 32px; width: auto;" />
     </a>
     <ul class="nav-links">
       <li><a href="react.html" class="active">REACT</a></li>
+      <li><a href="checklist.html">Checklist</a></li>
       <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
       <li><a href="index.html">← Home</a></li>
     </ul>
   </nav>
 
-  <div class="page">
+  <div class="page" id="main" tabindex="-1">
     <div class="react-header">
       <span class="react-tag">REACT – Compliance Assistant</span>
       <h1>Ask anything about<br /><em>FEMA Public Assistance.</em></h1>
@@ -258,20 +343,34 @@
     <div class="chat-wrap">
       <div class="chat-frame-outer">
         <div class="chat-frame-bar">
-          <div class="bar-dot green"></div>
-          <div class="bar-dot status"></div>
+          <div class="bar-dot connecting" id="chatStatusDot" aria-hidden="true"></div>
           <span class="bar-label">REACT</span>
-          <span class="bar-sub">by CompliAid · FEMA PA Compliance Assistant</span>
+          <span class="bar-sub" id="chatStatusText">Connecting…</span>
         </div>
         <div class="chat-frame-inner">
+          <div class="chat-loading" id="chatLoading" role="status" aria-live="polite">
+            <div class="chat-spinner" aria-hidden="true"></div>
+            <span>Loading REACT…</span>
+          </div>
+          <div class="chat-error" id="chatError" role="alert" hidden>
+            <p><strong>REACT couldn't load.</strong></p>
+            <p>The assistant is served by a third party and may be blocked by your network. You can retry, or open it in a new tab.</p>
+            <div class="chat-error-actions">
+              <button type="button" class="btn-secondary" onclick="location.reload()">Retry</button>
+              <a class="btn-primary" href="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/05/17/23/20260517234103-MD8280T5.json" target="_blank" rel="noopener">Open in new tab ↗</a>
+            </div>
+          </div>
           <iframe
+            id="reactFrame"
             src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/05/17/23/20260517234103-MD8280T5.json"
             allow="microphone"
+            loading="lazy"
             title="REACT – FEMA PA Compliance Assistant"
+            onload="reactFrameLoaded()"
           ></iframe>
         </div>
       </div>
-      <p class="disclaimer">⚠️ REACT is intended as a guidance tool and does not constitute legal, financial, or official FEMA advice. Always verify with your FEMA program delivery manager or state recipient.</p>
+      <p class="disclaimer"><span aria-hidden="true">⚠️</span> REACT is intended as a guidance tool and does not constitute legal, financial, or official FEMA advice. Always verify with your FEMA program delivery manager or state recipient.</p>
     </div>
 
     <footer>
@@ -279,6 +378,33 @@
       <a href="index.html">← Back to Home</a>
     </footer>
   </div>
+
+  <script>
+    let reactFrameReady = false;
+    function reactFrameLoaded() {
+      reactFrameReady = true;
+      const loading = document.getElementById('chatLoading');
+      const error = document.getElementById('chatError');
+      const dot = document.getElementById('chatStatusDot');
+      const text = document.getElementById('chatStatusText');
+      if (loading) loading.classList.add('hidden');
+      if (error) error.hidden = true;
+      if (dot) { dot.classList.remove('connecting'); dot.classList.add('online'); }
+      if (text) text.textContent = 'by CompliAid · FEMA PA Compliance Assistant';
+    }
+    // If the third-party widget never loads (blocked/offline), surface a fallback.
+    setTimeout(function () {
+      if (reactFrameReady) return;
+      const loading = document.getElementById('chatLoading');
+      const error = document.getElementById('chatError');
+      const dot = document.getElementById('chatStatusDot');
+      const text = document.getElementById('chatStatusText');
+      if (loading) loading.classList.add('hidden');
+      if (error) error.hidden = false;
+      if (dot) { dot.classList.remove('connecting'); dot.classList.add('offline'); }
+      if (text) text.textContent = 'Unavailable';
+    }, 12000);
+  </script>
 
 </body>
 </html>

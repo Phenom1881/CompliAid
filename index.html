@@ -3,9 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CompliAid, FEMA PA Compliance Intelligence</title>
+  <title>CompliAid — FEMA PA Compliance Intelligence</title>
+  <meta name="description" content="CompliAid helps emergency managers, subrecipients, and recovery specialists navigate FEMA Public Assistance requirements — faster, with fewer errors, and without the guesswork." />
+  <link rel="canonical" href="https://compliaid.com/" />
+  <meta name="theme-color" content="#004c53" />
+
+  <!-- Icons -->
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="assets/favicon-256.png" sizes="256x256" type="image/png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+
+  <!-- Open Graph / Twitter -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CompliAid" />
+  <meta property="og:title" content="CompliAid — FEMA PA Compliance Intelligence" />
+  <meta property="og:description" content="Compliance guidance, built for the field. Navigate FEMA Public Assistance requirements — faster, with fewer errors, and without the guesswork." />
+  <meta property="og:url" content="https://compliaid.com/" />
+  <meta property="og:image" content="https://compliaid.com/assets/og-compliaid.png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="CompliAid — FEMA PA Compliance Intelligence" />
+  <meta name="twitter:description" content="Compliance guidance, built for the field. Navigate FEMA Public Assistance requirements with confidence." />
+  <meta name="twitter:image" content="https://compliaid.com/assets/og-compliaid.png" />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -21,6 +45,19 @@
     }
 
     html { scroll-behavior: smooth; }
+
+    .skip-link {
+      position: absolute; left: 12px; top: -48px;
+      z-index: 300; background: var(--accent); color: #fff;
+      padding: 8px 16px; border-radius: 8px; text-decoration: none;
+      font-size: 0.85rem; font-weight: 600; transition: top 0.18s ease;
+    }
+    .skip-link:focus { top: 12px; }
+
+    a:focus-visible, button:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
 
     body {
       background: var(--bg);
@@ -240,7 +277,7 @@
       margin: 0 auto;
       padding: 0 48px 80px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
       gap: 20px;
     }
 
@@ -295,20 +332,30 @@
     /* FOOTER */
     footer {
       border-top: 1px solid var(--border);
-      padding: 32px 48px;
+      padding: 36px 48px;
       max-width: 860px;
       margin: 0 auto;
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       font-size: 0.82rem;
       color: var(--ink-muted);
       flex-wrap: wrap;
-      gap: 12px;
+      gap: 20px 32px;
     }
 
-    footer a { color: var(--ink-muted); text-decoration: none; }
+    footer a { color: var(--ink-muted); text-decoration: none; transition: color 0.2s; }
     footer a:hover { color: var(--ink); }
+
+    .footer-brand { display: flex; flex-direction: column; gap: 4px; }
+    .footer-brand span:first-child { color: var(--ink); font-weight: 500; }
+
+    .footer-links { display: flex; flex-direction: column; gap: 6px; }
+
+    .footer-meta { display: flex; flex-direction: column; gap: 4px; text-align: right; margin-left: auto; }
+    .footer-form { font-family: 'DM Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.72rem; letter-spacing: 0.02em; color: var(--accent); }
+    .footer-disc { font-size: 0.74rem; }
+    @media (max-width: 680px) { .footer-meta { text-align: left; margin-left: 0; } }
 
     /* ANIMATIONS */
     @keyframes fadeUp {
@@ -332,25 +379,36 @@
       }
       .hero { padding-top: 120px; }
     }
+
+    @media (max-width: 560px) {
+      nav { padding: 14px 18px; }
+      .nav-links { gap: 16px; min-width: 0; overflow-x: auto; scrollbar-width: none; }
+      .nav-links::-webkit-scrollbar { display: none; }
+      .nav-links a { font-size: 0.82rem; white-space: nowrap; }
+      .nav-cta { padding: 7px 14px; }
+    }
   </style>
 </head>
 <body>
 
+  <a class="skip-link" href="#main">Skip to content</a>
+
   <nav>
     <a href="index.html" class="nav-logo">
-      <img src="CompliAid.png" alt="CompliAid" style="height: 32px; width: auto;" />
+      <img src="CompliAid.png" alt="CompliAid" width="32" height="32" decoding="async" style="height: 32px; width: auto;" />
     </a>
     <ul class="nav-links">
       <li><a href="react.html">REACT</a></li>
+      <li><a href="checklist.html">Checklist</a></li>
       <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
       <li><a href="react.html" class="nav-cta">Try REACT</a></li>
     </ul>
   </nav>
 
-  <section class="hero">
+  <section class="hero" id="main" tabindex="-1">
     <span class="hero-tag">FEMA PA Compliance Intelligence</span>
     <h1>Compliance guidance,<br /><em>built for the field.</em></h1>
-    <p>CompliAid helps emergency managers, subrecipients, and recovery specialists navigate FEMA Public Assistance requirements, faster, with fewer errors, and without the guesswork.</p>
+    <p>CompliAid helps emergency managers, subrecipients, and recovery specialists navigate FEMA Public Assistance requirements — faster, with fewer errors, and without the guesswork.</p>
     <div class="hero-actions">
       <a href="react.html" class="btn-primary">Open REACT →</a>
       <a href="https://disasterdata.io" target="_blank" class="btn-secondary">DisasterData.IO ↗</a>
@@ -367,19 +425,19 @@
 
   <div class="features">
     <div class="feature-card">
-      <div class="feature-icon">📋</div>
+      <div class="feature-icon" aria-hidden="true">📋</div>
       <h3>Policy Interpretation</h3>
-      <p>Ask questions in plain language and get grounded, citation-backed answers from FEMA PA policy documents.</p>
+      <p>Ask in plain language — “Is force-account labor eligible under Category B?” — and REACT answers from FEMA PA policy, with the basis for the answer rather than a guess.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">🏛️</div>
+      <div class="feature-icon" aria-hidden="true">🏛️</div>
       <h3>Built for Public Sector</h3>
-      <p>Designed around the realities of small localities, nonprofits, and state recovery agencies, not enterprise workflows.</p>
+      <p>Designed around the realities of small localities, nonprofits, and state recovery agencies — no enterprise onboarding, no jargon, just the PA answers a grants manager actually needs.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon">⚡</div>
-      <h3>Instant Answers</h3>
-      <p>No waiting on technical advisors. Get compliance direction immediately, during the moments that matter.</p>
+      <div class="feature-icon" aria-hidden="true">⚡</div>
+      <h3>Ready When You Are</h3>
+      <p>No waiting on a technical advisor. Get compliance direction and track your documentation the moment a disaster is declared — and every long day after.</p>
     </div>
   </div>
 
@@ -388,24 +446,41 @@
   <section class="section">
     <p class="section-label">Our Tools</p>
     <h2>The CompliAid suite.</h2>
+    <p>A small set of focused tools for the FEMA Public Assistance lifecycle — ask policy questions, track the documentation each Category demands, and see the disaster landscape you're working in.</p>
   </section>
 
   <div class="products">
     <a href="react.html" class="product-card accent">
       <div class="product-name">REACT</div>
       <div class="product-sub">AI-powered FEMA PA compliance assistant. Ask anything. Get answers grounded in policy.</div>
-      <div class="product-arrow">→</div>
+      <div class="product-arrow" aria-hidden="true">→</div>
+    </a>
+    <a href="checklist.html" class="product-card">
+      <div class="product-name">Checklist</div>
+      <div class="product-sub">Track required and submitted documents across FEMA PA Categories A–G for an active project worksheet.</div>
+      <div class="product-arrow" aria-hidden="true">→</div>
     </a>
     <a href="https://disasterdata.io" target="_blank" class="product-card">
       <div class="product-name">DisasterData.IO</div>
       <div class="product-sub">County-level FEMA disaster declaration visualization. Explore declarations across the U.S.</div>
-      <div class="product-arrow">↗</div>
+      <div class="product-arrow" aria-hidden="true">↗</div>
     </a>
   </div>
 
   <footer>
-    <span>© 2026 CompliAid</span>
-    <span>Built for emergency management professionals.</span>
+    <div class="footer-brand">
+      <span>© 2026 CompliAid</span>
+      <span>Built for emergency management professionals.</span>
+    </div>
+    <div class="footer-links" role="navigation" aria-label="Footer">
+      <a href="react.html">REACT</a>
+      <a href="checklist.html">Documentation Checklist</a>
+      <a href="https://disasterdata.io" target="_blank" rel="noopener">DisasterData.IO ↗</a>
+    </div>
+    <div class="footer-meta">
+      <span class="footer-form">CompliAid · PA Documentation Aid · Rev. 2026.08</span>
+      <span class="footer-disc">Guidance only — not official FEMA advice. Verify with your program delivery manager.</span>
+    </div>
   </footer>
 
 </body>

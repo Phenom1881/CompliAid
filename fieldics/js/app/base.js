@@ -18,11 +18,12 @@
   var MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   var MAX_IMPORT_BYTES = 300 * 1024 * 1024;
   var ID_PART = /^[A-Za-z0-9-]{2,80}$/;
-  var ROUTE_NAMES = ['log', '201', '202', '203', '204', '205', '211', '213', '213rr', 'costs', 'share'];
+  var ROUTE_NAMES = ['log', 'notes', '201', '202', '203', '204', '205', '211', '213', '213rr', 'costs', 'share'];
 
   /* Navigation, grouped the way ICS sections work. code is the form number shown beside the name. */
   var NAV = [
     { r: 'log', group: 'Activity', code: '214', label: 'Activity log', types: [] },
+    { r: 'notes', group: 'Activity', code: '', label: 'Notes', types: ['note'] },
     { r: '201', group: 'Planning', code: '201', label: 'Incident briefing', types: ['201'] },
     { r: '202', group: 'Planning', code: '202', label: 'Objectives', types: ['202'] },
     { r: '203', group: 'Planning', code: '203', label: 'Organization', types: ['203'] },

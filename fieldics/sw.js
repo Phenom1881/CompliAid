@@ -2,7 +2,7 @@
  * FieldICS service worker: keeps the app on the device so it opens with no connection.
  * Change CACHE whenever any app file changes, so installed copies pick up the update.
  */
-var CACHE = 'field-ics-v3-2';
+var CACHE = 'field-ics-v3-3';
 var ASSETS = [
   './',
   'index.html',
@@ -38,6 +38,7 @@ var ASSETS = [
   'js/app/share.js',
   'js/app/printing.js',
   'js/app/checkin.js',
+  'js/app/notes.js',
   'js/app/locality.js',
   'js/app/readiness.js',
   'js/app/tools.js',

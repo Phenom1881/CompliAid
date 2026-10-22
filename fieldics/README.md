@@ -9,7 +9,8 @@ Version 0.3.
 | Form or tool | What it does |
 |---|---|
 | ICS 214 Activity Log | Append-only log with linked corrections. Photos on entries. Filter by person or operational period. |
-| Log it | A button on every screen (and Ctrl+Shift+L on a keyboard) that adds a 214 entry, with a photo, without leaving the form you are in. |
+| Notes | Working notes for the incident, kept apart from the official 214: callback numbers, addresses, follow-ups, decisions. Type and press Enter. Kinds (Info, Contact, Location, Follow-up, Decision), pin to the top, tick off follow-ups, search, and attach photos. Notes can be edited, and every version is kept. "Add to 214" moves a note into the activity log at the time it was taken; "Make 213" starts a message from it. Notes print as a list for shift handoff and travel in package files and QR transfers. |
+| Log it | A button on every screen (and Ctrl+Shift+L on a keyboard) that adds a 214 entry or a note, with a photo, without leaving the form you are in. It remembers which one you used last. |
 | ICS 201 Incident Briefing | All blocks, a map or sketch photo, actions, the organization (printed as a chart), and resources. Prints as the four 201 pages. |
 | ICS 202, 203, 204, 205 | One set per operational period, copied forward from the last period. The IAP prints with page numbers. |
 | ICS 211 Incident Check-In List | Check in people, equipment, and crews. Check-ins and check-outs go into the 214 automatically. Add a checked-in resource to a 204. Turn hours on scene into labor or equipment cost entries, one per day. |

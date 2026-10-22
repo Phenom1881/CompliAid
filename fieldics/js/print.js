@@ -641,6 +641,33 @@
   }
 
   /*
+   * Working notes, for a shift handoff or briefing. Not an ICS form.
+   * rows: [{ time, by, kind, text, status }]; opts.filtered: the list is a filtered view.
+   */
+  function notesList(ctx, rows, opts) {
+    opts = opts || {};
+    var doc = h('section', { class: 'p-doc' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'INCIDENT NOTES' }));
+    pg.appendChild(headerTable([
+      hcell('Incident', incidentName(ctx, true)),
+      hcell('Notes', String(rows.length) + (opts.filtered ? ' (filtered view)' : '')),
+      hcell('Printed', ctx.fmt.dt(ctx.printedAt))
+    ]));
+    var body = h('div', { class: 'p-bb' });
+    body.appendChild(h('p', { class: 'p-cert', text: 'Working notes. Only entries added to the ICS 214 are part of the activity log.' }));
+    body.appendChild(costTable(['Time', 'By', 'Kind', 'Note', 'Status'], rows.map(function (r) {
+      return { cells: [ctx.fmt.dt(r.time), r.by, r.kind, r.text, r.status] };
+    }), 99));
+    pg.appendChild(blockBox('Notes, pinned first, then newest first', body));
+    var foot = h('div', { class: 'p-foot' });
+    foot.appendChild(h('div', { class: 'p-audit', text: 'Printed ' + ctx.fmt.dt(ctx.printedAt) + ' from ' + (ctx.appName || 'FieldICS') + '.' }));
+    pg.appendChild(foot);
+    doc.appendChild(pg);
+    return doc;
+  }
+
+  /*
    * PA cost summary.
    * opts: { records: [{type, data, cost, date}], summary (core.costSummary), types: [..],
    *         category, site, preparedBy, preparedTitle }
@@ -894,6 +921,7 @@
     log214: log214,
     costSummary: costSummary,
     photoAppendix: photoAppendix,
+    notesList: notesList,
     checkin211: checkin211,
     blankSheet: blankSheet,
     paperCover: paperCover,

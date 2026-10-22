@@ -59,16 +59,24 @@
 
   <dialog id="quickLogDialog">
     <form id="qlForm" method="dialog" autocomplete="off">
-      <h2>Log it</h2>
-      <p class="hint">Adds an entry to the ICS 214 activity log without leaving this screen.</p>
+      <h2 id="qlTitle">Log it</h2>
+      <div class="seg" role="radiogroup" aria-label="Where this goes">
+        <label class="seg-opt"><input type="radio" name="qlMode" id="qlModeLog" value="log" checked> Activity log (214)</label>
+        <label class="seg-opt"><input type="radio" name="qlMode" id="qlModeNote" value="note"> Note</label>
+      </div>
+      <p class="hint" id="qlHint">Adds an entry to the ICS 214 activity log without leaving this screen.</p>
       <div class="field">
-        <label for="qlText">What happened</label>
+        <label for="qlText" id="qlTextLabel">What happened</label>
         <textarea id="qlText" rows="4" maxlength="5000" required></textarea>
       </div>
       <div class="grid two">
-        <div class="field">
+        <div class="field" id="qlTimeBox">
           <label for="qlTime">Time of activity</label>
           <input type="datetime-local" id="qlTime">
+        </div>
+        <div class="field" id="qlKindBox" hidden>
+          <label for="qlKind">Kind of note</label>
+          <select id="qlKind"></select>
         </div>
         <div class="field" id="qlNameBox">
           <label for="qlName">Your name</label>
@@ -398,6 +406,7 @@
   <script src="js/app/share.js"></script>
   <script src="js/app/printing.js"></script>
   <script src="js/app/checkin.js"></script>
+  <script src="js/app/notes.js"></script>
   <script src="js/app/locality.js"></script>
   <script src="js/app/readiness.js"></script>
   <script src="js/app/tools.js"></script>

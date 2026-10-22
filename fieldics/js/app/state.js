@@ -49,7 +49,9 @@
     lock: { record: null, unlocked: null, locked: false },
     clock: { offsetMs: null, source: '', checkedAt: '' },
     backupSnooze: {},
-    checkinFilter: 'here'
+    checkinFilter: 'here',
+    noteFilter: { show: 'all', q: '' },
+    prefill: null
   };
 
   function defaultSettings() {
@@ -211,6 +213,11 @@
     if (type === '213RR') {
       data.number = nextRequestNumber(inc);
       data.items = [C.emptyRow(F.fieldByKey('213RR', 'items'))];
+    }
+    /* A new form started from somewhere else (a note made into a 213, for example). */
+    if (S.prefill && S.prefill.type === type) {
+      Object.keys(S.prefill.data).forEach(function (k) { data[k] = S.prefill.data[k]; });
+      S.prefill = null;
     }
     return data;
   }
@@ -385,7 +392,7 @@
     if (name === 'costs') {
       r.sub = parts[1] === 'summary' || COST_TYPES.indexOf(parts[1]) !== -1 ? parts[1] : 'summary';
       if (r.sub !== 'summary') r.id = parts[2] || null;
-    } else if (name === '204' || name === '211' || name === '213' || name === '213rr') {
+    } else if (name === '204' || name === '211' || name === '213' || name === '213rr' || name === 'notes') {
       r.id = parts[1] || null;
     }
     if (r.id && r.id !== 'new' && !ID_PART.test(r.id)) r.id = null;
@@ -395,6 +402,7 @@
   function typeForRoute(r) {
     if (r.name === 'costs') return r.sub !== 'summary' && r.id ? r.sub : null;
     if (r.name === '213rr') return r.id ? '213RR' : null;
+    if (r.name === 'notes') return r.id ? 'note' : null;
     if (r.name === '201' || r.name === '202' || r.name === '203' || r.name === '205') return r.name;
     if ((r.name === '204' || r.name === '211' || r.name === '213') && r.id) return r.name;
     return null;
@@ -415,6 +423,7 @@
   function routeBase(type) {
     if (type === '204' || type === '211' || type === '213') return '#/' + type;
     if (type === '213RR') return '#/213rr';
+    if (type === 'note') return '#/notes';
     if (COST_TYPES.indexOf(type) !== -1) return '#/costs/' + type;
     return '#/' + type;
   }
@@ -462,6 +471,7 @@
       case 'contracts': return d.contractor || 'Contract';
       case 'travel': return [d.kind, d.name || d.description].filter(Boolean).join(': ') || 'Travel or other cost';
       case '211': return d.identifier || 'Check-in';
+      case 'note': return (d.text || 'Empty note').split('\n')[0].slice(0, 70);
       default: return FORMS[type].code;
     }
   }

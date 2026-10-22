@@ -16,6 +16,7 @@
   var h = A.h;
   var list204View = A.later('list204View');
   var list211View = A.later('list211View');
+  var notesView = A.later('notesView');
   var lockView = A.later('lockView');
   var renderNotices = A.later('renderNotices');
   var renderQuickLog = A.later('renderQuickLog');
@@ -188,6 +189,7 @@
     else if (r.name === '202' || r.name === '203' || r.name === '205') el = periodFormView(inc, r.name);
     else if (r.name === '204') el = r.id ? recordRouteView(inc, '204', r.id) : list204View(inc);
     else if (r.name === '211') el = r.id ? recordRouteView(inc, '211', r.id) : list211View(inc);
+    else if (r.name === 'notes') el = r.id ? recordRouteView(inc, 'note', r.id) : notesView(inc);
     else if (r.name === '213') el = r.id ? recordRouteView(inc, '213', r.id) : list213View(inc);
     else if (r.name === '213rr') el = r.id ? recordRouteView(inc, '213RR', r.id) : list213RRView(inc);
     else if (r.name === 'costs') el = costsView(inc, r);

@@ -605,7 +605,7 @@
     var head = h('section', { class: 'card' });
     var titleRow = h('div', { class: 'view-head' });
     titleRow.appendChild(h('div', null,
-      h('h2', { text: def.group === 'cost' ? def.title + (s.isNew ? ' (new entry)' : '') : def.code + ' ' + def.title }),
+      h('h2', { text: def.group === 'cost' ? def.title + (s.isNew ? ' (new entry)' : '') : def.group === 'note' ? (s.isNew ? 'New note' : 'Note') : def.code + ' ' + def.title }),
       opts.subtitle ? h('p', { class: 'hint', text: opts.subtitle }) : null));
     if (opts.back) titleRow.appendChild(h('a', { class: 'btn btn-quiet', href: opts.back, text: opts.backLabel || 'Back to list' }));
     head.appendChild(titleRow);
@@ -639,7 +639,7 @@
         if (def.autofill && f.k === def.autofill.key) autofill(cur(), def, S.session, ctx);
       }
     };
-    root.appendChild(formCheckBar(def, s));
+    if (def.group !== 'note') root.appendChild(formCheckBar(def, s));
     root.appendChild(buildEditor(def, s.data, ctx));
     root.appendChild(errorBox);
 
@@ -750,7 +750,7 @@
   function recordRouteView(inc, type, id) {
     var def = FORMS[type];
     var back = routeBase(type);
-    var backLabel = def.group === 'cost' ? 'Back to ' + COST_NAMES[type].toLowerCase() : 'Back to list';
+    var backLabel = def.group === 'cost' ? 'Back to ' + COST_NAMES[type].toLowerCase() : def.group === 'note' ? 'Back to notes' : 'Back to list';
     if (id === 'new') {
       var period = null;
       if (def.scope === 'period-many') {

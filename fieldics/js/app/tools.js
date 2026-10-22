@@ -23,6 +23,7 @@
   var toast = A.toast;
   var openExport = A.openExport;
   var pickPhotos = A.pickPhotos;
+  var currentPeriodNumber = A.currentPeriodNumber;
 
   /* ---------- display ---------- */
 
@@ -35,7 +36,49 @@
     else root.removeAttribute('data-text');
     var dark = set.theme === 'dark' || (set.theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
     var meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', dark ? '#0c1617' : '#004c53');
+    if (meta) meta.setAttribute('content', dark ? '#12171b' : '#1c2329');
+  }
+
+  /* ---------- the incident strip clock ---------- */
+
+  var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+
+  function hhmm(d) { return two(d.getHours()) + ':' + two(d.getMinutes()); }
+
+  function span(ms) {
+    var mins = Math.round(ms / 60000);
+    var h = Math.floor(mins / 60);
+    var m = mins % 60;
+    return h ? h + 'h ' + two(m) + 'm' : m + 'm';
+  }
+
+  /* The live 24-hour clock, with where the current operational period stands. */
+  function updateClock() {
+    var t = $('opsTime');
+    var sub = $('opsSub');
+    if (!t || !sub) return;
+    var now = new Date();
+    t.textContent = hhmm(now) + ':' + two(now.getSeconds());
+    var text = DAYS[now.getDay()] + ' ' + now.getDate() + ' ' + MONTHS[now.getMonth()];
+    var inc = S.ready && !S.lock.locked ? cur() : null;
+    var n = inc ? currentPeriodNumber(inc) : null;
+    var p = n ? C.periodOf(inc, n) : null;
+    if (p) {
+      var start = new Date(p.start);
+      var end = new Date(p.end);
+      if (!isNaN(start) && now < start) text += ' | OP ' + n + ' starts in ' + span(start - now);
+      else if (!isNaN(end) && now < end) text += ' | OP ' + n + ' ends ' + hhmm(end) + ', ' + span(end - now) + ' left';
+      else if (!isNaN(end)) text += ' | OP ' + n + ' ended ' + hhmm(end);
+    }
+    if (sub.textContent !== text) sub.textContent = text;
+  }
+
+  function startClock() {
+    updateClock();
+    setInterval(updateClock, 1000);
   }
 
   /* ---------- notices: exercise, backup reminder, clock ---------- */
@@ -235,6 +278,8 @@
   /* ---------- exports ---------- */
 
   A.applyDisplay = applyDisplay;
+  A.startClock = startClock;
+  A.updateClock = updateClock;
   A.renderNotices = renderNotices;
   A.backupDue = backupDue;
   A.checkServerClock = checkServerClock;

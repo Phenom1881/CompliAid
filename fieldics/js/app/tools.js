@@ -1,0 +1,246 @@
+/* FieldICS: Quick "Log it" entry, backup reminders, exercise mode notice, clock check, and display settings. */
+(function (A) {
+  'use strict';
+
+  var $ = A.$;
+  var C = A.C;
+  var S = A.S;
+  var btn = A.btn;
+  var closeDialog = A.closeDialog;
+  var cur = A.cur;
+  var deviceLabel = A.deviceLabel;
+  var fmtDT = A.fmtDT;
+  var fromLocalInput = A.fromLocalInput;
+  var h = A.h;
+  var openDialog = A.openDialog;
+  var openPanel = A.openPanel;
+  var persist = A.persist;
+  var persistSettings = A.persistSettings;
+  var plural = A.plural;
+  var setup = A.setup;
+  var showError = A.showError;
+  var toLocalInput = A.toLocalInput;
+  var toast = A.toast;
+  var openExport = A.openExport;
+  var pickPhotos = A.pickPhotos;
+
+  /* ---------- display ---------- */
+
+  function applyDisplay() {
+    var root = document.documentElement;
+    var set = S.settings || {};
+    if (set.theme === 'light' || set.theme === 'dark') root.setAttribute('data-theme', set.theme);
+    else root.removeAttribute('data-theme');
+    if (set.textSize === 'large' || set.textSize === 'larger') root.setAttribute('data-text', set.textSize);
+    else root.removeAttribute('data-text');
+    var dark = set.theme === 'dark' || (set.theme !== 'light' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', dark ? '#0c1617' : '#004c53');
+  }
+
+  /* ---------- notices: exercise, backup reminder, clock ---------- */
+
+  function hoursSince(iso) {
+    var t = Date.parse(iso);
+    return isNaN(t) ? Infinity : (Date.now() - t) / 3600000;
+  }
+
+  function backupDue(inc) {
+    if (!inc) return null;
+    var pending = C.countPending(inc);
+    if (!pending.total) return null;
+    var limit = setup().options.backupHours || 4;
+    var since = inc.lastExportAt ? hoursSince(inc.lastExportAt) : hoursSince(inc.createdAt);
+    if (since < limit && !(pending.total >= 50 && since >= limit / 2)) return null;
+    var snooze = S.backupSnooze[inc.id];
+    if (snooze && snooze > Date.now()) return null;
+    return { pending: pending, since: since };
+  }
+
+  function ago(hours) {
+    if (!isFinite(hours)) return '';
+    if (hours < 1) return Math.max(1, Math.round(hours * 60)) + ' minutes ago';
+    if (hours < 48) return Math.round(hours) + (Math.round(hours) === 1 ? ' hour ago' : ' hours ago');
+    return Math.round(hours / 24) + ' days ago';
+  }
+
+  function renderNotices(inc) {
+    var bar = $('noticeBar');
+    if (!bar) return;
+    bar.textContent = '';
+    var parts = [];
+    if (inc && inc.exercise) {
+      parts.push(h('div', { class: 'notice notice-exercise', id: 'exerciseNotice' },
+        h('strong', { text: 'EXERCISE. ' }), 'This incident is marked as an exercise. Every printout and PDF says so.'));
+    }
+    var due = backupDue(inc);
+    if (due) {
+      parts.push(h('div', { class: 'notice notice-backup', id: 'backupNotice' },
+        h('span', { text: (due.pending.total === due.pending.atts
+          ? plural(due.pending.atts, 'photo is', 'photos are') + ' only on this device. Save a package file with photos to back them up. '
+          : plural(due.pending.total, 'change is', 'changes are') + ' only on this device. ') +
+          (inc.lastExportAt ? 'The last package file was saved ' + ago(due.since) + '.' : 'No package file has been saved for this incident yet.') + ' ' }),
+        h('span', { class: 'row wrap' },
+          btn('Save package file', function () { openExport(); }, 'btn-primary btn-small', { id: 'backupNow' }),
+          btn('Remind me in an hour', function () {
+            S.backupSnooze[inc.id] = Date.now() + 3600000;
+            renderNotices(inc);
+          }, 'btn-quiet btn-small'))));
+    }
+    var c = S.clock;
+    if (c.offsetMs !== null && Math.abs(c.offsetMs) > 5 * 60000) {
+      var mins = Math.round(Math.abs(c.offsetMs) / 60000);
+      parts.push(h('div', { class: 'notice notice-clock', id: 'clockNotice' },
+        h('span', { text: "This device's clock looks " + plural(mins, 'minute', 'minutes') + (c.offsetMs > 0 ? ' behind ' : ' ahead of ') + c.source +
+          '. Times in the log and on forms come from this clock. Set the date and time in the device settings. ' }),
+        btn('Clock check', openClockCheck, 'btn-quiet btn-small')));
+    }
+    parts.forEach(function (p) { bar.appendChild(p); });
+    bar.hidden = !parts.length;
+  }
+
+  /* ---------- clock check ---------- */
+
+  /* Compares this device's clock with the web server's, when there is a connection. */
+  function checkServerClock() {
+    if (!/^https?:$/.test(window.location.protocol) || (typeof navigator.onLine === 'boolean' && !navigator.onLine)) {
+      return Promise.resolve(null);
+    }
+    var sent = Date.now();
+    return fetch(window.location.href.split('#')[0], { method: 'HEAD', cache: 'no-store' }).then(function (res) {
+      var date = res.headers.get('Date');
+      var got = Date.now();
+      var server = Date.parse(date || '');
+      if (isNaN(server)) return null;
+      /* The Date header has one-second precision; allow for the round trip. */
+      var offset = server - (sent + got) / 2;
+      noteClock(Math.abs(offset) < 90000 ? 0 : offset, 'the web server');
+      return offset;
+    }).catch(function () { return null; });
+  }
+
+  function noteClock(offsetMs, source) {
+    S.clock = { offsetMs: offsetMs, source: source, checkedAt: C.nowISO() };
+    renderNotices(cur());
+  }
+
+  /* After an import: a package saved "in the future" means one of the two clocks is off. */
+  function clockFromPackage(report) {
+    if (!report || !report.exportedAt) return '';
+    var ahead = Date.parse(report.exportedAt) - Date.now();
+    if (ahead > 10 * 60000) {
+      noteClock(ahead, report.fromDevice || 'the device that sent the file');
+      return 'This file was saved ' + Math.round(ahead / 60000) + ' minutes in the future by this device\'s clock. One of the two clocks is off. Check the time on both devices.';
+    }
+    return '';
+  }
+
+  function openClockCheck() {
+    var body = openPanel('Clock check');
+    var now = new Date();
+    var zone = '';
+    try { zone = Intl.DateTimeFormat().resolvedOptions().timeZone || ''; } catch (e) { zone = ''; }
+    body.appendChild(h('p', { class: 'clock-big', text: fmtDT(now.toISOString()) }));
+    body.appendChild(h('p', { text: 'Time zone: ' + (zone || 'not known') + ' (UTC' + offsetText(-now.getTimezoneOffset()) + ').' }));
+    body.appendChild(h('p', { class: 'hint', text: 'Every log entry and form version is stamped with this device\'s clock. Compare the time above with a radio, a phone with signal, or the dispatch clock. If it is off, fix it in the device settings, then add a correction to any log entries made with the wrong time.' }));
+    var result = h('p', { id: 'clockResult', role: 'status' });
+    var c = S.clock;
+    if (c.offsetMs !== null) result.textContent = 'Last check (' + fmtDT(c.checkedAt) + ', against ' + c.source + '): ' + describeOffset(c.offsetMs);
+    body.appendChild(result);
+    body.appendChild(btn('Check against the web server', function () {
+      result.textContent = 'Checking...';
+      checkServerClock().then(function (off) {
+        result.textContent = off === null ? 'There is no connection to the web server right now, so compare by hand.' : 'Checked against the web server: ' + describeOffset(Math.abs(off) < 90000 ? 0 : off);
+      });
+    }, '', { id: 'clockCheckNow' }));
+  }
+
+  function offsetText(mins) {
+    var sign = mins >= 0 ? '+' : '-';
+    var a = Math.abs(mins);
+    return sign + Math.floor(a / 60) + (a % 60 ? ':' + (a % 60 < 10 ? '0' : '') + (a % 60) : '');
+  }
+
+  function describeOffset(ms) {
+    if (Math.abs(ms) < 90000) return 'this clock is right to within a minute or two.';
+    var mins = Math.round(Math.abs(ms) / 60000);
+    return 'this clock is ' + plural(mins, 'minute', 'minutes') + (ms > 0 ? ' behind.' : ' ahead.');
+  }
+
+  /* ---------- Log it ---------- */
+
+  var quickPhotos = [];
+
+  function renderQuickLog(inc) {
+    var b = $('quickLogBtn');
+    if (!b) return;
+    b.hidden = !inc || S.lock.locked || S.route.name === 'log';
+  }
+
+  function openQuickLog() {
+    var inc = cur();
+    if (!inc) return;
+    quickPhotos = [];
+    $('qlText').value = '';
+    $('qlTime').value = toLocalInput(new Date());
+    $('qlName').value = S.settings.name;
+    $('qlNameBox').hidden = !!S.settings.name;
+    $('qlPhotoNote').textContent = '';
+    showError($('qlError'), '');
+    openDialog($('quickLogDialog'));
+    $('qlText').focus();
+  }
+
+  function wireQuickLog() {
+    $('quickLogBtn').addEventListener('click', openQuickLog);
+    $('qlCancel').addEventListener('click', function () { closeDialog($('quickLogDialog')); });
+    $('qlPhoto').addEventListener('click', function () {
+      pickPhotos(C.LIMITS.entryPhotos - quickPhotos.length).then(function (ids) {
+        quickPhotos = quickPhotos.concat(ids);
+        $('qlPhotoNote').textContent = quickPhotos.length ? plural(quickPhotos.length, 'photo', 'photos') + ' attached.' : '';
+      });
+    });
+    $('qlForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var inc = cur();
+      var name = S.settings.name || $('qlName').value.trim();
+      var ts = fromLocalInput($('qlTime').value) || C.nowISO();
+      try {
+        C.addEntry(inc, {
+          text: $('qlText').value, author: name, position: S.settings.position, ts: ts, photos: quickPhotos,
+          deviceId: S.settings.deviceId, deviceName: deviceLabel()
+        });
+      } catch (err) {
+        showError($('qlError'), err.message);
+        return;
+      }
+      if (!S.settings.name && name) {
+        S.settings.name = name.slice(0, 120);
+        persistSettings();
+      }
+      quickPhotos = [];
+      persist(inc);
+      closeDialog($('quickLogDialog'));
+      toast('Added to the activity log.');
+      renderNotices(inc);
+    });
+    document.addEventListener('keydown', function (ev) {
+      if ((ev.ctrlKey || ev.metaKey) && ev.shiftKey && (ev.key === 'L' || ev.key === 'l') && cur() && !S.lock.locked) {
+        ev.preventDefault();
+        openQuickLog();
+      }
+    });
+  }
+
+  /* ---------- exports ---------- */
+
+  A.applyDisplay = applyDisplay;
+  A.renderNotices = renderNotices;
+  A.backupDue = backupDue;
+  A.checkServerClock = checkServerClock;
+  A.clockFromPackage = clockFromPackage;
+  A.openClockCheck = openClockCheck;
+  A.renderQuickLog = renderQuickLog;
+  A.openQuickLog = openQuickLog;
+  A.wireQuickLog = wireQuickLog;
+})(window.FieldApp);

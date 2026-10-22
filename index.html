@@ -240,12 +240,8 @@
       margin: 0 auto;
       padding: 0 48px 80px;
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 20px;
-    }
-
-    @media (max-width: 640px) {
-      .products { grid-template-columns: 1fr; }
     }
 
     .product-card {
@@ -332,6 +328,14 @@
       }
       .hero { padding-top: 120px; }
     }
+
+    /* Phone menu: tighter spacing; REACT stays in the menu, so the extra button is hidden. */
+    @media (max-width: 680px) {
+      nav { padding-left: 16px; padding-right: 16px; }
+      .nav-links { gap: 14px; }
+      .nav-links a { font-size: 0.8rem; white-space: nowrap; }
+      .nav-links li:has(.nav-cta) { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -342,6 +346,7 @@
     </a>
     <ul class="nav-links">
       <li><a href="react.html">REACT</a></li>
+      <li><a href="fieldics/">FieldICS</a></li>
       <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
       <li><a href="react.html" class="nav-cta">Try REACT</a></li>
     </ul>
@@ -394,6 +399,11 @@
     <a href="react.html" class="product-card accent">
       <div class="product-name">REACT</div>
       <div class="product-sub">AI-powered FEMA PA compliance assistant. Ask anything. Get answers grounded in policy.</div>
+      <div class="product-arrow">→</div>
+    </a>
+    <a href="fieldics/" class="product-card">
+      <div class="product-name">FieldICS</div>
+      <div class="product-sub">Offline ICS forms, check-in, and FEMA PA cost documentation for local responders. Works with no signal, and data stays on the device.</div>
       <div class="product-arrow">→</div>
     </a>
     <a href="https://disasterdata.io" target="_blank" class="product-card">

@@ -233,6 +233,14 @@
       nav { padding: 16px 24px; }
       .react-header, .chat-wrap, footer { padding-left: 20px; padding-right: 20px; }
     }
+
+    /* Phone menu: tighter spacing; REACT stays in the menu, so the extra button is hidden. */
+    @media (max-width: 680px) {
+      nav { padding-left: 16px; padding-right: 16px; }
+      .nav-links { gap: 14px; }
+      .nav-links a { font-size: 0.8rem; white-space: nowrap; }
+      .nav-links li:has(.nav-cta) { display: none; }
+    }
   </style>
 </head>
 <body>
@@ -243,6 +251,7 @@
     </a>
     <ul class="nav-links">
       <li><a href="react.html" class="active">REACT</a></li>
+      <li><a href="fieldics/">FieldICS</a></li>
       <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
       <li><a href="index.html">← Home</a></li>
     </ul>

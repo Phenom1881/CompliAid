@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob: mediastream:; connect-src 'self' data: blob:; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#004c53">
+  <meta name="description" content="FieldICS by CompliAid: offline ICS forms and incident documentation for local emergency management.">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="stylesheet" href="styles.css">
+  <title>FieldICS</title>
+</head>
+<body>
+  <a class="skip" href="#view">Skip to the form</a>
+
+  <header class="topbar">
+    <div class="brand">
+      <img src="icons/icon-192.png" alt="" width="36" height="36">
+      <div>
+        <h1>FieldICS</h1>
+        <p class="tagline">ICS forms and incident documentation that work without signal. A CompliAid tool.</p>
+      </div>
+    </div>
+    <div class="topbar-right">
+      <span id="statusChip" class="chip" role="status">Starting...</span>
+      <button type="button" id="settingsBtn" class="btn btn-quiet">Settings</button>
+    </div>
+  </header>
+
+  <div id="banner" class="banner" role="alert" hidden></div>
+  <div id="conflictBar" class="banner banner-info" hidden></div>
+  <div id="noticeBar" class="notices" hidden></div>
+
+  <main>
+    <section id="incidentBar" class="card bar" hidden></section>
+    <nav id="nav" class="tabs" aria-label="Forms" hidden></nav>
+    <div id="view" tabindex="-1"></div>
+  </main>
+
+  <footer class="foot">
+    <p>FieldICS supports documentation. It does not replace your plans, paper forms, or the official ICS forms. Keep a paper fallback and save package files regularly.</p>
+    <p>FieldICS is part of the <a href="https://compliaid.com/">CompliAid</a> suite. Incident data stays on your device.</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <button type="button" id="quickLogBtn" class="fab" aria-label="Log it: add an activity log entry" title="Add an ICS 214 entry from any screen (Ctrl+Shift+L)" hidden>Log it</button>
+
+  <dialog id="quickLogDialog">
+    <form id="qlForm" method="dialog" autocomplete="off">
+      <h2>Log it</h2>
+      <p class="hint">Adds an entry to the ICS 214 activity log without leaving this screen.</p>
+      <div class="field">
+        <label for="qlText">What happened</label>
+        <textarea id="qlText" rows="4" maxlength="5000" required></textarea>
+      </div>
+      <div class="grid two">
+        <div class="field">
+          <label for="qlTime">Time of activity</label>
+          <input type="datetime-local" id="qlTime">
+        </div>
+        <div class="field" id="qlNameBox">
+          <label for="qlName">Your name</label>
+          <input type="text" id="qlName" maxlength="120" list="people">
+        </div>
+      </div>
+      <div class="row wrap">
+        <button type="button" id="qlPhoto" class="btn btn-quiet btn-small">Add photo</button>
+        <span id="qlPhotoNote" class="hint"></span>
+      </div>
+      <p id="qlError" class="error" role="alert" hidden></p>
+      <div class="row end">
+        <button type="button" id="qlCancel" class="btn btn-quiet">Cancel</button>
+        <button type="submit" id="qlAdd" class="btn btn-primary">Add to log</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="incidentDialog">
+    <form id="incForm" method="dialog">
+      <h2 id="incTitle">New incident</h2>
+      <div class="field">
+        <label for="incName">Incident name (required)</label>
+        <input type="text" id="incName" maxlength="160" required>
+      </div>
+      <div class="grid two">
+        <div class="field">
+          <label for="incNumber">Incident number</label>
+          <input type="text" id="incNumber" maxlength="60">
+        </div>
+        <div class="field">
+          <label for="incLocation">Location or ICP</label>
+          <input type="text" id="incLocation" maxlength="200">
+        </div>
+      </div>
+      <fieldset id="incPeriodBox" class="field plain">
+        <legend>Operational period 1</legend>
+        <div class="grid two">
+          <div class="field">
+            <label for="incStart">Start</label>
+            <input type="datetime-local" id="incStart">
+          </div>
+          <div class="field">
+            <label for="incEnd">End</label>
+            <input type="datetime-local" id="incEnd">
+          </div>
+        </div>
+      </fieldset>
+      <label class="check top field" for="incExercise"><input type="checkbox" id="incExercise"> This is an exercise or drill. Every screen, printout, PDF, and package file is marked EXERCISE, and pilot metrics count it separately.</label>
+      <details id="incCostBox" class="field">
+        <summary>Cost recovery details (for the PA cost summary)</summary>
+        <div class="grid two">
+          <div class="field">
+            <label for="incApplicant">Applicant (agency name)</label>
+            <input type="text" id="incApplicant" maxlength="200">
+          </div>
+          <div class="field">
+            <label for="incPaId">FEMA PA ID</label>
+            <input type="text" id="incPaId" maxlength="60">
+          </div>
+          <div class="field">
+            <label for="incDisaster">Disaster number</label>
+            <input type="text" id="incDisaster" maxlength="60" placeholder="DR-0000-VA">
+          </div>
+        </div>
+      </details>
+      <p id="incError" class="error" role="alert" hidden></p>
+      <div class="row space">
+        <button type="button" id="incDelete" class="btn btn-danger" hidden>Remove from this device</button>
+        <span class="row">
+          <button type="button" id="incCancel" class="btn btn-quiet">Cancel</button>
+          <button type="submit" id="incSave" class="btn btn-primary">Save</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="periodDialog">
+    <form id="perForm" method="dialog">
+      <h2 id="perTitle">Operational period</h2>
+      <p id="perNote" class="hint" hidden></p>
+      <div class="grid two">
+        <div class="field">
+          <label for="perStart">Start (required)</label>
+          <input type="datetime-local" id="perStart" required>
+        </div>
+        <div class="field">
+          <label for="perEnd">End (required)</label>
+          <input type="datetime-local" id="perEnd" required>
+        </div>
+      </div>
+      <p id="perError" class="error" role="alert" hidden></p>
+      <div class="row space">
+        <button type="button" id="perDelete" class="btn btn-danger" hidden>Remove period</button>
+        <span class="row">
+          <button type="button" id="perCancel" class="btn btn-quiet">Cancel</button>
+          <button type="submit" id="perSave" class="btn btn-primary">Save</button>
+        </span>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="settingsDialog">
+    <form id="setForm" method="dialog">
+      <h2>Settings</h2>
+      <p class="hint">Saved on this device only. Your name and position fill in "Prepared by" and are recorded with every change you save.</p>
+      <div class="grid two">
+        <div class="field">
+          <label for="setAuthor">Your name</label>
+          <input type="text" id="setAuthor" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="setPosition">ICS position</label>
+          <input type="text" id="setPosition" maxlength="120" list="ics-positions">
+        </div>
+        <div class="field">
+          <label for="setAgency">Home agency</label>
+          <input type="text" id="setAgency" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="setDevice">Device name</label>
+          <input type="text" id="setDevice" maxlength="120" placeholder="Example: Chief's phone">
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="field">
+          <label for="setTheme">Display</label>
+          <select id="setTheme">
+            <option value="system">Match the device</option>
+            <option value="light">Light</option>
+            <option value="dark">Night (dark)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="setText">Text size</label>
+          <select id="setText">
+            <option value="normal">Normal</option>
+            <option value="large">Large</option>
+            <option value="larger">Larger</option>
+          </select>
+        </div>
+      </div>
+      <div class="settings-tools">
+        <button type="button" id="setSetupBtn" class="btn btn-quiet">Locality setup <span id="setSetupState" class="count"></span></button>
+        <button type="button" id="setLockBtn" class="btn btn-quiet">Device lock <span id="setLockState" class="count"></span></button>
+        <button type="button" id="setClockBtn" class="btn btn-quiet">Clock check</button>
+      </div>
+      <p id="setInfo" class="hint"></p>
+      <div class="row end">
+        <button type="button" id="setCancel" class="btn btn-quiet">Cancel</button>
+        <button type="submit" id="setSave" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="exportDialog">
+    <form id="expForm" method="dialog">
+      <h2>Save package file</h2>
+      <fieldset class="field plain">
+        <legend>What to include</legend>
+        <label class="choice"><input type="radio" name="expScope" value="full" checked> Everything in this incident</label>
+        <label class="choice"><input type="radio" name="expScope" value="changes" id="expChanges"> Only changes since my last export <span id="expChangesCount"></span></label>
+        <p class="hint">When in doubt, choose Everything. Importing the same item twice never creates duplicates.</p>
+      </fieldset>
+      <div class="field">
+        <label class="check top" for="expNoPhotos"><input type="checkbox" id="expNoPhotos"> Leave out photos</label>
+        <p class="hint" id="expPhotosNote"></p>
+      </div>
+      <div class="field">
+        <label for="expPass">Passphrase (optional)</label>
+        <input type="password" id="expPass" autocomplete="new-password">
+        <p class="hint" id="expPassHint">Locks the file so only someone with the passphrase can read it. At least 8 characters. Share the passphrase separately, and do not lose it. It cannot be recovered.</p>
+      </div>
+      <div class="field">
+        <label for="expPass2">Repeat passphrase</label>
+        <input type="password" id="expPass2" autocomplete="new-password">
+      </div>
+      <p id="expError" class="error" role="alert" hidden></p>
+      <div class="row end wrap">
+        <button type="button" id="expCancel" class="btn btn-quiet">Cancel</button>
+        <button type="button" id="expShare" class="btn" hidden>Share...</button>
+        <button type="submit" id="expSave" class="btn btn-primary">Save file</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="passDialog">
+    <form id="passForm" method="dialog">
+      <h2 id="passTitle">Passphrase</h2>
+      <p id="passMessage"></p>
+      <div class="field">
+        <label for="passInput">Passphrase</label>
+        <input type="password" id="passInput" autocomplete="off">
+      </div>
+      <p id="passError" class="error" role="alert" hidden></p>
+      <div class="row end">
+        <button type="button" id="passCancel" class="btn btn-quiet">Skip this file</button>
+        <button type="submit" id="passOk" class="btn btn-primary">Unlock</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="logPrintDialog">
+    <form id="lpForm" method="dialog">
+      <h2>ICS 214 activity log</h2>
+      <p class="hint">Choose whose log and which period. The next screen saves a PDF or prints.</p>
+      <div class="grid two">
+        <div class="field">
+          <label for="lpWho">Whose log</label>
+          <select id="lpWho"></select>
+        </div>
+        <div class="field">
+          <label for="lpPeriod">Operational period</label>
+          <select id="lpPeriod"></select>
+        </div>
+        <div class="field">
+          <label for="lpAgency">Home agency (and unit)</label>
+          <input type="text" id="lpAgency" maxlength="200">
+        </div>
+        <div class="field">
+          <label for="lpBy">Prepared by</label>
+          <input type="text" id="lpBy" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="lpByPos">Position/title</label>
+          <input type="text" id="lpByPos" maxlength="120" list="ics-positions">
+        </div>
+      </div>
+      <label class="check field" for="lpPhotos"><input type="checkbox" id="lpPhotos"> Add a photo appendix</label>
+      <div class="row end">
+        <button type="button" id="lpCancel" class="btn btn-quiet">Cancel</button>
+        <button type="submit" id="lpGo" class="btn btn-primary">Continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="costPrintDialog">
+    <form id="cpForm" method="dialog">
+      <h2>PA cost summary</h2>
+      <p class="hint">Lays out entries the way the FEMA Public Assistance summary records group them. Prints best in landscape.</p>
+      <div class="grid two">
+        <div class="field">
+          <label for="cpCategory">Category of work</label>
+          <select id="cpCategory"></select>
+        </div>
+        <div class="field">
+          <label for="cpSite">Location or site</label>
+          <select id="cpSite"></select>
+        </div>
+      </div>
+      <fieldset class="field plain">
+        <legend>Include</legend>
+        <div id="cpTypes" class="checks-row"></div>
+      </fieldset>
+      <div class="grid two">
+        <div class="field">
+          <label for="cpBy">Certified by</label>
+          <input type="text" id="cpBy" maxlength="120">
+        </div>
+        <div class="field">
+          <label for="cpTitle">Title</label>
+          <input type="text" id="cpTitle" maxlength="120">
+        </div>
+      </div>
+      <label class="check field" for="cpPhotos"><input type="checkbox" id="cpPhotos"> Add a photo appendix (receipts and work photos)</label>
+      <div class="row end">
+        <button type="button" id="cpCancel" class="btn btn-quiet">Cancel</button>
+        <button type="submit" id="cpGo" class="btn btn-primary">Continue</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="messageDialog">
+    <form method="dialog">
+      <h2 id="msgTitle"></h2>
+      <ul id="msgList" class="msg-list"></ul>
+      <div class="row end">
+        <button type="submit" class="btn btn-primary">OK</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="panelDialog" class="wide">
+    <div class="panel-head">
+      <h2 id="panelTitle"></h2>
+      <button type="button" id="panelClose" class="btn btn-quiet">Close</button>
+    </div>
+    <div id="panelBody"></div>
+  </dialog>
+
+  <section id="printArea" aria-hidden="true"></section>
+
+  <input type="file" id="importFile" accept=".json,application/json" multiple hidden>
+  <input type="file" id="imageFile" accept="image/*" hidden>
+  <input type="file" id="photoFiles" accept="image/*" multiple hidden>
+  <input type="file" id="setupFile" accept=".json,application/json" hidden>
+  <input type="file" id="csvFile" accept=".csv,text/csv" hidden>
+  <datalist id="ics-positions"></datalist>
+  <datalist id="people"></datalist>
+  <datalist id="cost-sites"></datalist>
+  <datalist id="autofill-keys"></datalist>
+  <datalist id="checkin-places"></datalist>
+
+  <script src="js/forms.js"></script>
+  <script src="js/core.js"></script>
+  <script src="js/store.js"></script>
+  <script src="js/print.js"></script>
+  <script src="js/checks.js"></script>
+  <script src="js/setup.js"></script>
+  <script src="js/metrics.js"></script>
+  <script src="js/secure.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/pdf.js"></script>
+  <script src="js/data/fema-rates-2025.js"></script>
+  <script src="js/app/base.js"></script>
+  <script src="js/app/state.js"></script>
+  <script src="js/app/shell.js"></script>
+  <script src="js/app/log.js"></script>
+  <script src="js/app/editor.js"></script>
+  <script src="js/app/photos.js"></script>
+  <script src="js/app/lists.js"></script>
+  <script src="js/app/costs.js"></script>
+  <script src="js/app/records.js"></script>
+  <script src="js/app/dialogs.js"></script>
+  <script src="js/app/share.js"></script>
+  <script src="js/app/printing.js"></script>
+  <script src="js/app/checkin.js"></script>
+  <script src="js/app/locality.js"></script>
+  <script src="js/app/readiness.js"></script>
+  <script src="js/app/tools.js"></script>
+  <script src="js/app/lock.js"></script>
+  <script src="js/app/transfer.js"></script>
+  <script src="js/app/main.js"></script>
+</body>
+</html>

@@ -9,6 +9,14 @@ FieldICS includes the following work by others. Both libraries are copied into `
 
 Full license texts: `js/vendor/LICENSE-qrcode-generator.txt` and `js/vendor/LICENSE-jsqr.txt`.
 
+## Fonts
+
+| Font | License | Copyright | Used for |
+|---|---|---|---|
+| IBM Plex Sans and IBM Plex Sans Condensed (Latin, from Fontsource 5.2.8) | SIL Open Font License 1.1 | Copyright 2017 IBM Corp. | All on-screen text. Printouts use Arial or Helvetica. |
+
+The font files are in `fonts/` with the full license in `fonts/LICENSE-IBM-Plex.txt`. They load from the app itself, so no font service is contacted.
+
 "QR Code" is a registered trademark of DENSO WAVE INCORPORATED.
 
 ## Data

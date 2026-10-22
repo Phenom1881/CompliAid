@@ -130,6 +130,7 @@
     S.settings = defaultSettings();
     wireStatic();
     applyDisplay();
+    A.startClock();
     S.route = parseRoute();
     render();
     Store.open({ upgradeIncident: function (raw) { return C.upgradeIncident(raw); } }).then(function (raw) {

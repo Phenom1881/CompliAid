@@ -115,9 +115,16 @@
     if (!inc) return;
     var counts = conflictCounts(inc);
     var active = null;
+    var group = '';
     NAV.forEach(function (item) {
+      if (item.group !== group) {
+        group = item.group;
+        nav.appendChild(h('span', { class: 'nav-group', text: group }));
+      }
       var on = S.route.name === item.r;
-      var a = h('a', { class: 'tab', href: '#/' + item.r, 'aria-current': on ? 'page' : null }, item.label);
+      var a = h('a', { class: 'tab', href: '#/' + item.r, 'aria-current': on ? 'page' : null },
+        item.code ? h('span', { class: 'nav-code', text: item.code }) : null,
+        h('span', { class: 'nav-name', text: item.label }));
       if (counts[item.r]) {
         a.appendChild(h('span', { class: 'badge', text: String(counts[item.r]), title: plural(counts[item.r], 'item', 'items') + ' with versions to compare' }));
       }

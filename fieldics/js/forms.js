@@ -128,6 +128,8 @@
     };
   }
 
+  var NOTE_KINDS = ['Info', 'Contact', 'Location', 'Follow-up', 'Decision'];
+
   var CHECKIN_LOCATIONS = ['Base', 'Staging Area', 'ICP', 'Helibase', 'Other'];
 
   var POSITIONS = [
@@ -743,6 +745,31 @@
       ]
     },
 
+    /* Working notes: quick, editable, kept apart from the official ICS 214 until someone moves one there. */
+    note: {
+      type: 'note',
+      group: 'note',
+      scope: 'many',
+      code: 'Note',
+      title: 'Note',
+      blocks: [
+        {
+          title: 'Note',
+          fields: [
+            area('text', 'Note', { required: true, rows: 5, max: 4000, hideLabel: true }),
+            choice('kind', 'Kind', NOTE_KINDS, { defValue: 'Info' }),
+            flag('pinned', 'Pin to the top of the notes'),
+            flag('done', 'Follow-up done')
+          ]
+        },
+        {
+          title: 'Photos', photos: true,
+          note: 'A photo of a whiteboard, a map, a sign-in sheet, or a business card.',
+          fields: [images('photos', 'Photos', { hideLabel: true })]
+        }
+      ]
+    },
+
     travel: {
       type: 'travel',
       group: 'cost',
@@ -805,6 +832,7 @@
     FORMS: FORMS,
     RECORD_TYPES: RECORD_TYPES,
     FORM_TYPES: FORM_TYPES,
+    NOTE_KINDS: NOTE_KINDS,
     COST_TYPES: COST_TYPES,
     CATEGORY_LIST: CATEGORY_LIST,
     CHECKIN_LOCATIONS: CHECKIN_LOCATIONS,

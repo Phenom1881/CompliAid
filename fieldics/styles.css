@@ -749,6 +749,39 @@ table.data tr.total td { font-weight: 600; background: var(--soft); }
 .entry-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 0.8rem; color: var(--muted); }
 .entry-foot .btn { min-height: 28px; font-size: 0.8rem; }
 
+/* ---------- notes ---------- */
+
+.note-form { margin: 12px 0 4px; }
+.note-form textarea { min-height: 76px; }
+.note-form-row { margin-top: 8px; }
+.note-form-row select { width: auto; min-width: 140px; flex: 0 1 auto; }
+.note-form-row .btn-primary { margin-left: auto; }
+.note-filters input[type="search"] { flex: 1 1 220px; width: auto; }
+.note-filters select { flex: 0 1 200px; }
+.notes { list-style: none; margin: 4px 0 0; padding: 0; border: 1px solid var(--line); border-radius: var(--r-sm); overflow: hidden; }
+.notes:empty { display: none; }
+.note { padding: 10px 14px 8px 13px; border-left: 3px solid transparent; background: var(--card); }
+.note + .note { border-top: 1px solid var(--line); }
+.note.is-pinned { border-left-color: var(--action); background: var(--soft); }
+.note.is-open { border-left-color: var(--warn); }
+.note.is-deleted { opacity: 0.55; }
+.note-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 0.84rem; color: var(--muted); }
+.note-time { font-family: var(--font-cond); font-weight: 600; font-size: 0.92rem; color: var(--text); font-variant-numeric: tabular-nums; }
+.note-text { margin: 5px 0 4px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.note-meta { margin: 0 0 4px; font-size: 0.8rem; color: var(--muted); }
+.note-actions { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 2px; }
+.note-actions .btn { min-height: 28px; font-size: 0.8rem; padding: 0 9px; }
+.tag-pin { background: var(--action-tint); color: var(--action-ink); }
+.tag-ok { background: var(--ok-bg); color: var(--ok); }
+
+/* Two-way choice shown as one control (Log it: 214 entry or note). */
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: var(--r-sm); overflow: hidden; margin: 0 0 8px; }
+.seg-opt { display: inline-flex; align-items: center; gap: 6px; min-height: var(--ctl-sm); padding: 0 14px; cursor: pointer; font-weight: 500; font-size: 0.9rem; color: var(--text-2); }
+.seg-opt + .seg-opt { border-left: 1px solid var(--line-strong); }
+.seg-opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg-opt:has(input:checked) { background: var(--action); color: #fff; }
+.seg-opt:has(input:focus-visible) { outline: 2px solid var(--focus); outline-offset: -2px; }
+
 /* ---------- dialogs ---------- */
 
 dialog {

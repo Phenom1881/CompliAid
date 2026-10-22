@@ -17,6 +17,7 @@
   var persist = A.persist;
   var persistSettings = A.persistSettings;
   var plural = A.plural;
+  var render = A.render;
   var setup = A.setup;
   var showError = A.showError;
   var toLocalInput = A.toLocalInput;
@@ -213,6 +214,22 @@
   /* ---------- Log it ---------- */
 
   var quickPhotos = [];
+  var quickMode = 'log';
+
+  /* Log it adds either a 214 entry or a working note. */
+  function applyQuickMode() {
+    var note = quickMode === 'note';
+    $('qlModeLog').checked = !note;
+    $('qlModeNote').checked = note;
+    $('qlTitle').textContent = note ? 'Add a note' : 'Log it';
+    $('qlHint').textContent = note
+      ? 'Saves a working note for this incident. It stays out of the ICS 214 until you add it from Notes.'
+      : 'Adds an entry to the ICS 214 activity log without leaving this screen.';
+    $('qlTextLabel').textContent = note ? 'Note' : 'What happened';
+    $('qlTimeBox').hidden = note;
+    $('qlKindBox').hidden = !note;
+    $('qlAdd').textContent = note ? 'Add note' : 'Add to log';
+  }
 
   function renderQuickLog(inc) {
     var b = $('quickLogBtn');
@@ -220,9 +237,11 @@
     b.hidden = !inc || S.lock.locked || S.route.name === 'log';
   }
 
-  function openQuickLog() {
+  function openQuickLog(mode) {
     var inc = cur();
     if (!inc) return;
+    if (mode === 'log' || mode === 'note') quickMode = mode;
+    applyQuickMode();
     quickPhotos = [];
     $('qlText').value = '';
     $('qlTime').value = toLocalInput(new Date());
@@ -235,7 +254,15 @@
   }
 
   function wireQuickLog() {
-    $('quickLogBtn').addEventListener('click', openQuickLog);
+    $('quickLogBtn').addEventListener('click', function () { openQuickLog(); });
+    var kinds = $('qlKind');
+    A.F.NOTE_KINDS.forEach(function (k) { kinds.appendChild(h('option', { value: k, text: k })); });
+    ['qlModeLog', 'qlModeNote'].forEach(function (id) {
+      $(id).addEventListener('change', function () {
+        quickMode = $('qlModeNote').checked ? 'note' : 'log';
+        applyQuickMode();
+      });
+    });
     $('qlCancel').addEventListener('click', function () { closeDialog($('quickLogDialog')); });
     $('qlPhoto').addEventListener('click', function () {
       pickPhotos(C.LIMITS.entryPhotos - quickPhotos.length).then(function (ids) {
@@ -249,7 +276,15 @@
       var name = S.settings.name || $('qlName').value.trim();
       var ts = fromLocalInput($('qlTime').value) || C.nowISO();
       try {
-        C.addEntry(inc, {
+        if (quickMode === 'note') {
+          if (!$('qlText').value.trim()) throw new Error('Type the note first.');
+          if (!name) throw new Error('Enter your name.');
+          if (!S.settings.name) {
+            S.settings.name = name.slice(0, 120);
+            persistSettings();
+          }
+          A.addNote(inc, { text: $('qlText').value, kind: $('qlKind').value, photos: quickPhotos });
+        } else C.addEntry(inc, {
           text: $('qlText').value, author: name, position: S.settings.position, ts: ts, photos: quickPhotos,
           deviceId: S.settings.deviceId, deviceName: deviceLabel()
         });
@@ -264,7 +299,9 @@
       quickPhotos = [];
       persist(inc);
       closeDialog($('quickLogDialog'));
-      toast('Added to the activity log.');
+      toast(quickMode === 'note' ? 'Note saved.' : 'Added to the activity log.');
+      $('qlKind').value = 'Info';
+      if (S.route.name === 'notes' || S.route.name === 'log') render();
       renderNotices(inc);
     });
     document.addEventListener('keydown', function (ev) {

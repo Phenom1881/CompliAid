@@ -705,7 +705,12 @@ table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; backgrou
 table.data th, table.data td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.data th { font-family: var(--font-cond); font-weight: 600; font-size: 0.82rem; color: var(--muted); background: var(--soft); }
 table.data tr:last-child td { border-bottom: 0; }
-table.data td:first-child { min-width: 9.5em; }
+table.data td:first-child { min-width: 7em; }
+@media (max-width: 599px) {
+  table.data th, table.data td { padding: 7px 6px; }
+  table.data td:first-child { min-width: 5.6em; }
+  table.data th { font-size: 0.78rem; }
+}
 table.data .num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 table.data tr.total td { font-weight: 600; background: var(--soft); }
 .small-title { font-size: 0.95rem; margin: 16px 0 6px; }

@@ -15,6 +15,7 @@ Version 0.3.
 | ICS 211 Incident Check-In List | Check in people, equipment, and crews. Check-ins and check-outs go into the 214 automatically. Add a checked-in resource to a 204. Turn hours on scene into labor or equipment cost entries, one per day. |
 | ICS 213 and 213 RR | Messages and resource requests. Request items can become materials, rental, or contract cost entries that keep the request number. |
 | Cost capture | Force account labor, equipment, materials, rentals, contracts, and travel, meals, and other direct costs, laid out like the FEMA Public Assistance summary records. Photos of receipts and invoices on any entry. Volunteer labor and donated equipment and materials are kept out of the cost totals and listed as donated resources. |
+| PA cost spreadsheets | An Excel workbook with a Summary sheet, one sheet per cost type, and a Donated sheet. Each cost sheet calculates its line costs with formulas, so finance can fill in a rate in Excel and every total, including the category of work totals on the Summary, updates. Also one CSV of every cost entry, and one CSV per cost type. Exports follow the category and site chosen on the cost summary. |
 | FEMA equipment rates | The FEMA 2025 Schedule of Equipment Rates (465 items) is built in. "Find a rate" on an equipment entry searches by code, type, make, or size and fills the code, rate, and unit. A newer FEMA schedule or local rates load from a CSV. |
 | Readiness checks | "Check this form" lists empty blocks and missing required items. "Check the IAP" looks for missing 202, 203, 204s, and 205 and empty blocks before a briefing. "Check cost documentation" looks for missing rates, categories of work, invoices or receipts, equipment operators and codes, procurement methods, budgeted status, and donors. "Jump to block" moves straight to any block on a long form. |
 | PDFs | Every printout saves as a PDF on the device, with no print dialog, or shares straight to Mail or Messages where the phone allows it. Print still works. |
@@ -106,6 +107,8 @@ ICS 205A, 206, 207, 208, 209, 215, 215A, and 221. Cloud sync and a local Wi-Fi h
     js/core.js          data rules, versions and conflicts, packages and merging, costs, CSV (no browser code)
     js/checks.js        readiness checks
     js/setup.js         locality setup files, CSV lists, rate schedules
+    js/xlsx.js          Excel workbook writer (no outside library)
+    js/costbook.js      the PA cost workbook and the all-costs CSV
     js/metrics.js       pilot metrics
     js/secure.js        device lock encryption
     js/qr.js            QR transfer framing

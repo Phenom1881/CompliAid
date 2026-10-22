@@ -176,11 +176,16 @@
     }
     var row = h('div', { class: 'row wrap tools' });
     row.appendChild(btn('Print PA cost summary', function () { openCostPrint(); }, 'btn-primary', { id: 'printCosts' }));
-    row.appendChild(btn('Check cost documentation', function () { A.openCostCheck(inc); }, '', { id: 'checkCosts' }));
-    COST_TYPES.forEach(function (t) {
-      if (s.types[t].count) row.appendChild(btn(COST_NAMES[t] + ' CSV', function () { downloadCostCSV(inc, t); }, 'btn-quiet'));
-    });
+    row.appendChild(btn('Excel workbook', function () { A.downloadCostWorkbook(inc); }, '', { id: 'xlsxCosts' }));
+    row.appendChild(btn('All costs (CSV)', function () { A.downloadAllCostsCSV(inc); }, '', { id: 'allCostsCsv' }));
+    row.appendChild(btn('Check cost documentation', function () { A.openCostCheck(inc); }, 'btn-quiet', { id: 'checkCosts' }));
     card.appendChild(row);
+    var one = h('div', { class: 'row wrap tools' }, h('span', { class: 'hint', text: 'One cost type (CSV):' }));
+    COST_TYPES.forEach(function (t) {
+      if (s.types[t].count) one.appendChild(btn(COST_NAMES[t], function () { downloadCostCSV(inc, t); }, 'btn-quiet btn-small'));
+    });
+    if (one.children.length > 1) card.appendChild(one);
+    if (S.costFilter.category || S.costFilter.site) card.appendChild(h('p', { class: 'hint', text: 'Exports follow the category and site chosen above.' }));
     return card;
   }
 

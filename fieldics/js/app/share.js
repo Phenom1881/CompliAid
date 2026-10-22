@@ -105,9 +105,14 @@
     root.appendChild(printCard);
 
     var csv = h('section', { class: 'card' });
-    csv.appendChild(h('h2', { text: 'Spreadsheets (CSV)' }));
-    var csvRow = h('div', { class: 'row wrap' }, btn('ICS 214 log', function () { downloadLogCSV(); }, 'btn-quiet'));
-    COST_TYPES.forEach(function (t) { csvRow.appendChild(btn(COST_NAMES[t], function () { downloadCostCSV(inc, t); }, 'btn-quiet')); });
+    csv.appendChild(h('h2', { text: 'Spreadsheets' }));
+    csv.appendChild(h('p', { class: 'hint', text: 'The Excel workbook has a summary sheet and one sheet per cost type. Rates and amounts can be filled in there, and every total updates.' }));
+    csv.appendChild(h('div', { class: 'row wrap' },
+      btn('PA cost workbook (Excel)', function () { downloadCostWorkbook(inc); }, '', { id: 'xlsxShare' }),
+      btn('All cost entries (CSV)', function () { downloadAllCostsCSV(inc); }, 'btn-quiet', { id: 'allCostsCsvShare' }),
+      btn('ICS 214 log (CSV)', function () { downloadLogCSV(); }, 'btn-quiet')));
+    var csvRow = h('div', { class: 'row wrap tools' }, h('span', { class: 'hint', text: 'One cost type (CSV):' }));
+    COST_TYPES.forEach(function (t) { csvRow.appendChild(btn(COST_NAMES[t], function () { downloadCostCSV(inc, t); }, 'btn-quiet btn-small')); });
     csv.appendChild(csvRow);
     root.appendChild(csv);
 
@@ -376,6 +381,39 @@
     toast('CSV saved. Times in the CSV are UTC.');
   }
 
+  function costFilter() {
+    return { category: S.costFilter.category, site: S.costFilter.site };
+  }
+
+  /* The PA cost workbook: a Summary sheet, one sheet per cost type with live formulas, and Donated. */
+  function downloadCostWorkbook(inc) {
+    commitSession('leave');
+    var bytes;
+    try {
+      var wb = window.FieldCostbook.workbook(inc, {
+        filter: costFilter(),
+        preparedBy: S.settings.name,
+        preparedTitle: S.settings.position,
+        deviceName: deviceLabel()
+      });
+      bytes = window.FieldXLSX.build(wb.sheets, { title: 'PA costs: ' + inc.name, creator: S.settings.name || 'FieldICS' });
+    } catch (err) {
+      toast('The workbook could not be made: ' + err.message);
+      return;
+    }
+    var name = 'fieldics_' + C.slug(inc.name) + '_pa-costs_' + C.stamp() + (inc.exercise ? '_exercise' : '') + '.xlsx';
+    download(name, new Blob([bytes], { type: window.FieldXLSX.MIME }));
+    track('exports');
+    toast('Excel workbook saved.');
+  }
+
+  function downloadAllCostsCSV(inc) {
+    commitSession('leave');
+    var csv = '\ufeff' + window.FieldCostbook.allCostsCSV(inc, { filter: costFilter() });
+    download('fieldics_' + C.slug(inc.name) + '_' + C.stamp() + '_all-costs.csv', new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    toast('All costs CSV saved.');
+  }
+
   function downloadCostCSV(inc, type) {
     commitSession('leave');
     var csv = '﻿' + C.costCSV(inc, type, { category: S.costFilter.category, site: S.costFilter.site });
@@ -400,4 +438,6 @@
   A.chooseImport = chooseImport;
   A.downloadLogCSV = downloadLogCSV;
   A.downloadCostCSV = downloadCostCSV;
+  A.downloadCostWorkbook = downloadCostWorkbook;
+  A.downloadAllCostsCSV = downloadAllCostsCSV;
 })(window.FieldApp);

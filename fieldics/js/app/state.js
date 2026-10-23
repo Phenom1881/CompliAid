@@ -51,7 +51,11 @@
     backupSnooze: {},
     checkinFilter: 'here',
     noteFilter: { show: 'all', q: '' },
-    prefill: null
+    prefill: null,
+    photosLoading: false,
+    photosReady: Promise.resolve(),
+    damageLevel: '',
+    volunteerFilter: 'here'
   };
 
   function defaultSettings() {
@@ -125,9 +129,25 @@
 
   /* ---------- persistence ---------- */
 
+  /*
+   * Runs fn once stored photos have finished loading (they load in the background after
+   * the app opens or unlocks), so printouts and package files always carry them.
+   */
+  function withPhotos(fn) {
+    return function () {
+      var self = this;
+      var args = arguments;
+      if (!S.photosLoading) return fn.apply(self, args);
+      toast('Loading photos from this device...');
+      S.photosReady.then(function () { fn.apply(self, args); });
+      return undefined;
+    };
+  }
+
   function persist(inc) {
     if (!S.store || !inc) return Promise.resolve();
     return S.store.putIncident(inc).then(function () {
+      if (A.syncChanged) A.syncChanged();
       if (bannerState.storage) {
         bannerState.storage = '';
         updateBanner();
@@ -385,6 +405,18 @@
 
   /* ---------- routing ---------- */
 
+  /* Routes are lower case; a few name a type spelled differently. */
+  var ROUTE_TYPE = { '213rr': '213RR', '205a': '205A', '215a': '215A', notes: 'note', volunteers: 'volunteer' };
+  /* One form per operational period. */
+  var PERIOD_ROUTES = ['202', '203', '205', '205a', '206', '208', '215', '215a'];
+  /* A list of records, each opened at #/route/id. */
+  var LIST_ROUTES = ['204', '209', '211', '213', '213rr', '221', 'notes', 'volunteers'];
+  var DAMAGE_SUBS = { homes: 'daHome', sites: 'daSite' };
+
+  function routeType(name) {
+    return ROUTE_TYPE[name] || name;
+  }
+
   function parseRoute() {
     var parts = (window.location.hash || '').replace(/^#\/?/, '').split('/').filter(Boolean);
     var name = ROUTE_NAMES.indexOf(parts[0]) !== -1 ? parts[0] : 'log';
@@ -392,7 +424,10 @@
     if (name === 'costs') {
       r.sub = parts[1] === 'summary' || COST_TYPES.indexOf(parts[1]) !== -1 ? parts[1] : 'summary';
       if (r.sub !== 'summary') r.id = parts[2] || null;
-    } else if (name === '204' || name === '211' || name === '213' || name === '213rr' || name === 'notes') {
+    } else if (name === 'damage') {
+      r.sub = DAMAGE_SUBS[parts[1]] ? parts[1] : 'summary';
+      if (r.sub !== 'summary') r.id = parts[2] || null;
+    } else if (LIST_ROUTES.indexOf(name) !== -1) {
       r.id = parts[1] || null;
     }
     if (r.id && r.id !== 'new' && !ID_PART.test(r.id)) r.id = null;
@@ -401,10 +436,9 @@
 
   function typeForRoute(r) {
     if (r.name === 'costs') return r.sub !== 'summary' && r.id ? r.sub : null;
-    if (r.name === '213rr') return r.id ? '213RR' : null;
-    if (r.name === 'notes') return r.id ? 'note' : null;
-    if (r.name === '201' || r.name === '202' || r.name === '203' || r.name === '205') return r.name;
-    if ((r.name === '204' || r.name === '211' || r.name === '213') && r.id) return r.name;
+    if (r.name === 'damage') return r.sub !== 'summary' && r.id ? DAMAGE_SUBS[r.sub] : null;
+    if (r.name === '201' || PERIOD_ROUTES.indexOf(r.name) !== -1) return routeType(r.name);
+    if (LIST_ROUTES.indexOf(r.name) !== -1 && r.id) return routeType(r.name);
     return null;
   }
 
@@ -421,11 +455,11 @@
   }
 
   function routeBase(type) {
-    if (type === '204' || type === '211' || type === '213') return '#/' + type;
-    if (type === '213RR') return '#/213rr';
-    if (type === 'note') return '#/notes';
     if (COST_TYPES.indexOf(type) !== -1) return '#/costs/' + type;
-    return '#/' + type;
+    var damage = Object.keys(DAMAGE_SUBS).filter(function (k) { return DAMAGE_SUBS[k] === type; })[0];
+    if (damage) return '#/damage/' + damage;
+    var route = Object.keys(ROUTE_TYPE).filter(function (k) { return ROUTE_TYPE[k] === type; })[0];
+    return '#/' + (route || String(type).toLowerCase());
   }
 
   function go(hash) {
@@ -472,6 +506,11 @@
       case 'travel': return [d.kind, d.name || d.description].filter(Boolean).join(': ') || 'Travel or other cost';
       case '211': return d.identifier || 'Check-in';
       case 'note': return (d.text || 'Empty note').split('\n')[0].slice(0, 70);
+      case '209': return (d.version || 'Status') + ' report' + (d.reportNo ? ' #' + d.reportNo : '') + (d.prepAt ? ', ' + fmtShort(d.prepAt) : '');
+      case '221': return d.released || 'Demobilization check-out';
+      case 'daHome': return d.address || 'Home';
+      case 'daSite': return d.name || 'Damaged facility';
+      case 'volunteer': return d.name || 'Volunteer';
       default: return FORMS[type].code;
     }
   }
@@ -516,7 +555,7 @@
       persist(inc);
     }
     if (compare) S.pendingCompare = g.rid;
-    if (def.scope === 'incident' || def.scope === 'period') go('#/' + g.type);
+    if (def.scope === 'incident' || def.scope === 'period') go(routeBase(g.type));
     else go(routeBase(g.type) + '/' + g.rid);
   }
 
@@ -538,6 +577,7 @@
   A.sortedIncidents = sortedIncidents;
   A.currentPeriodNumber = currentPeriodNumber;
   A.persist = persist;
+  A.withPhotos = withPhotos;
   A.persistSettings = persistSettings;
   A.sessionTimer = sessionTimer;
   A.sessionRecord = sessionRecord;
@@ -555,6 +595,8 @@
   A.markDirty = markDirty;
   A.recoverSession = recoverSession;
   A.parseRoute = parseRoute;
+  A.routeType = routeType;
+  A.PERIOD_ROUTES = PERIOD_ROUTES;
   A.typeForRoute = typeForRoute;
   A.sessionMatchesRoute = sessionMatchesRoute;
   A.routeBase = routeBase;

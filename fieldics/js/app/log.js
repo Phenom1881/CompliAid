@@ -10,6 +10,7 @@
   var deviceLabel = A.deviceLabel;
   var downloadLogCSV = A.later('downloadLogCSV');
   var entryPhotos = A.later('entryPhotos');
+  var photoImg = A.later('photoImg');
   var pickPhotos = A.later('pickPhotos');
   var chooseSetupFile = A.later('chooseSetupFile');
   var cur = A.cur;
@@ -53,12 +54,48 @@
       S.settings.deviceName = dev.input.value.trim().slice(0, 120);
       persistSettings();
     }
+    /* Kept as typed, so opening Settings or another screen first does not lose them. */
+    [name, pos, dev].forEach(function (x) { x.input.addEventListener('change', keep); });
     card.appendChild(h('div', { class: 'row wrap' },
       btn('Create incident', function () { keep(); openIncidentDialog('new'); }, 'btn-primary', { id: 'welcomeNewBtn' }),
       btn('Import a package', function () { keep(); chooseImport(); }, '', { id: 'welcomeImportBtn' }),
       btn('Load locality setup file', function () { keep(); chooseSetupFile(); }, 'btn-quiet', { id: 'welcomeSetupBtn' })));
     card.appendChild(h('p', { class: 'hint', text: 'A locality setup file comes from your emergency management office. It adds your people, equipment, sites, and local rates so forms fill in faster.' }));
+    card.appendChild(h('div', { class: 'practice-box' },
+      h('h3', { class: 'small-title', text: 'Learning FieldICS?' }),
+      h('p', { class: 'hint', text: 'Load a practice incident: an invented flash flood, filled in with forms, a log, check-ins, costs, a damage assessment, and volunteers. It is marked EXERCISE everywhere and can be removed when you are done.' }),
+      h('div', { class: 'row wrap' },
+        btn('Load the practice incident', function () { keep(); loadPractice(); }, '', { id: 'practiceBtn' }),
+        btn('Quick start guide', function () { A.openHelp(); }, 'btn-quiet', { id: 'helpBtn' }))));
     return card;
+  }
+
+  var PRACTICE_NAME = 'Practice: Laurel Fork Flash Flood';
+
+  /* Adds the invented practice incident (marked EXERCISE) and opens it. */
+  function loadPractice() {
+    var have = A.sortedIncidents().filter(function (i) { return i.exercise && i.name === PRACTICE_NAME; })[0];
+    if (have && !window.confirm('A practice incident is already on this device. Add another copy?')) {
+      A.switchIncident(have.id);
+      return;
+    }
+    var inc;
+    try {
+      inc = window.FieldPractice.build(C, { deviceId: S.settings.deviceId, deviceName: deviceLabel(), by: 'Practice data' });
+    } catch (err) {
+      toast('The practice incident could not be made: ' + err.message);
+      return;
+    }
+    A.commitSession('leave');
+    S.session = null;
+    S.incidents.set(inc.id, inc);
+    S.currentId = inc.id;
+    S.settings.lastIncidentId = inc.id;
+    S.logFilter = { author: '', period: '' };
+    persist(inc);
+    persistSettings();
+    A.go('#/log');
+    toast('Practice incident loaded. It is marked EXERCISE on every screen and printout.');
   }
 
   /* ---------- ICS 214 log ---------- */
@@ -164,8 +201,8 @@
     if (!Array.isArray(d.photos)) d.photos = [];
     var photoRow = h('div', { class: 'row wrap entry-photos' });
     d.photos.forEach(function (id, i) {
-      var att = C.getAttachment(inc, id);
-      if (att) photoRow.appendChild(h('img', { class: 'mini-thumb', src: att.data, alt: 'Photo ' + (i + 1) + ' for this entry' }));
+      var img = photoImg(inc, id, { class: 'mini-thumb', alt: 'Photo ' + (i + 1) + ' for this entry' });
+      if (img) photoRow.appendChild(img);
     });
     if (d.photos.length < C_LIMITS.entryPhotos) {
       photoRow.appendChild(btn(d.photos.length ? 'Add another photo' : 'Add photo', function () {
@@ -225,7 +262,14 @@
       ev.preventDefault();
       submit();
     });
-    card.appendChild(form);
+    if (C.isClosed(inc)) {
+      /* Closed out: the log can be read and printed, not added to. */
+      card.textContent = '';
+      card.appendChild(h('h2', { text: 'Activity log (ICS 214)' }));
+      card.appendChild(h('p', { class: 'hint', text: 'This incident is closed out, so no entries can be added. Reopen it under Share and print to add more.' }));
+    } else {
+      card.appendChild(form);
+    }
     root.appendChild(card);
 
     var listCard = h('section', { class: 'card' });
@@ -279,6 +323,7 @@
 
   A.textInput = textInput;
   A.welcomeView = welcomeView;
+  A.loadPractice = loadPractice;
   A.findEntry = findEntry;
   A.entryCard = entryCard;
   A.logView = logView;

@@ -191,6 +191,118 @@
     return blockBox((b.n ? b.n + '. ' : '') + b.title, body);
   }
 
+  /* A fixed table block (ICS 209 blocks 30 to 32, ICS 221 block 6). */
+  function matrixTable(m, data, ctx) {
+    var head = h('tr', null, h('th', { text: NBSP }));
+    m.cols.forEach(function (c) { head.appendChild(h('th', { text: c[1] })); });
+    var body = h('tbody');
+    m.rows.forEach(function (r) {
+      var tr = h('tr', null, h('td', { class: 'p-rowhead', text: r[1] }));
+      m.cols.forEach(function (c) {
+        var v = data[m.prefix + r[0] + c[0]];
+        var kind = c[2] || 'int';
+        var text = kind === 'bool' ? (v ? 'X' : '') : (v === null || v === undefined ? '' : String(v));
+        tr.appendChild(h('td', { class: 'p-c-' + kind, text: text || NBSP }));
+      });
+      body.appendChild(tr);
+    });
+    return h('table', { class: 'p-grid p-matrix' }, h('thead', null, head), body);
+  }
+
+  function matrixKeys(m) {
+    var keys = [];
+    m.rows.forEach(function (r) { m.cols.forEach(function (c) { keys.push(m.prefix + r[0] + c[0]); }); });
+    return keys;
+  }
+
+  function geoText(data) {
+    if (data.lat === null || data.lat === undefined || data.lon === null || data.lon === undefined) return '';
+    return data.lat.toFixed(6) + ', ' + data.lon.toFixed(6) + (data.gpsAcc ? ' (within ' + data.gpsAcc + ' m)' : '');
+  }
+
+  /* ICS 215 assignments: each line prints as required, have, and need rows, as on the form. Totals are blocks 11 to 13. */
+  function planning215(f, data, ctx) {
+    var slots = [];
+    for (var i = 1; i <= 6; i++) {
+      if (String(data[f.slots + i] || '').trim() || (data[f.k] || []).some(function (r) { return r['r' + i + 'Req'] !== null || r['r' + i + 'Have'] !== null; })) slots.push(i);
+    }
+    var head = h('tr', null, h('th', { text: '3. Branch' }), h('th', { text: '4. Division, group, or other' }), h('th', { text: '5. Work assignment and special instructions' }), h('th', { text: NBSP }));
+    slots.forEach(function (i) { head.appendChild(h('th', { class: 'p-num', text: String(data[f.slots + i] || 'Resource ' + i) })); });
+    ['7. Overhead position(s)', '8. Special equipment and supplies', '9. Reporting location', '10. Requested arrival time'].forEach(function (t) { head.appendChild(h('th', { text: t })); });
+    var body = h('tbody');
+    var totals = { req: {}, have: {}, need: {} };
+    slots.forEach(function (i) { totals.req[i] = 0; totals.have[i] = 0; totals.need[i] = 0; });
+    var lines = data[f.k] || [];
+    function n(v) { return typeof v === 'number' ? v : 0; }
+    lines.forEach(function (r) {
+      ['req', 'have', 'need'].forEach(function (part, j) {
+        var tr = h('tr', { class: j === 0 ? 'p-215-first' : 'p-215-sub' });
+        if (j === 0) {
+          [r.branch, r.division, r.work].forEach(function (t) { tr.appendChild(h('td', { rowspan: '3', text: t || NBSP })); });
+        }
+        tr.appendChild(h('td', { class: 'p-rowhead', text: part === 'req' ? 'Req.' : part === 'have' ? 'Have' : 'Need' }));
+        slots.forEach(function (i) {
+          var req = r['r' + i + 'Req'];
+          var have = r['r' + i + 'Have'];
+          var v;
+          if (part === 'req') v = req;
+          else if (part === 'have') v = have;
+          else v = req === null && have === null ? null : Math.max(0, n(req) - n(have));
+          if (v !== null && v !== undefined) totals[part][i] += v;
+          tr.appendChild(h('td', { class: 'p-num', text: v === null || v === undefined ? NBSP : String(v) }));
+        });
+        if (j === 0) {
+          [r.overhead, r.equipment, r.reporting, r.arrival].forEach(function (t) { tr.appendChild(h('td', { rowspan: '3', text: t || NBSP })); });
+        }
+        body.appendChild(tr);
+      });
+    });
+    if (!lines.length) {
+      var none = h('tr');
+      none.appendChild(h('td', { colspan: String(8 + slots.length), text: 'No assignments.' }));
+      body.appendChild(none);
+    }
+    [['req', '11. Total resources required'], ['have', '12. Total resources have on hand'], ['need', '13. Total resources need to order']].forEach(function (t) {
+      var tr = h('tr', { class: 'p-sum' }, h('td', { colspan: '4', text: t[1] }));
+      slots.forEach(function (i) { tr.appendChild(h('td', { class: 'p-num', text: String(totals[t[0]][i]) })); });
+      tr.appendChild(h('td', { colspan: '4', text: NBSP }));
+      body.appendChild(tr);
+    });
+    return h('table', { class: 'p-grid p-215' }, h('thead', null, head), body);
+  }
+
+  /* ICS 209 blocks 48 to 52, with the totals worked out. */
+  function commitment209(f, data, ctx) {
+    var rows = (data[f.k] || []).map(function (r) {
+      var people = (r.resourcePeople || 0) + (r.additional || 0);
+      return { cells: [r.agency, r.resources, r.resourceCount === null ? '' : String(r.resourceCount), r.resourcePeople === null ? '' : String(r.resourcePeople), r.additional === null ? '' : String(r.additional), String(people)] };
+    });
+    var res = (data[f.k] || []).reduce(function (s, r) { return s + (r.resourceCount || 0); }, 0);
+    var ppl = (data[f.k] || []).reduce(function (s, r) { return s + (r.resourcePeople || 0) + (r.additional || 0); }, 0);
+    var table = h('table', { class: 'p-grid' });
+    var head = h('tr');
+    ['48. Agency or organization', '49. Resources', '# of resources', '# of personnel with resources', '50. Additional personnel', '51. Total personnel'].forEach(function (t, i) {
+      head.appendChild(h('th', { class: i >= 2 ? 'p-num' : null, text: t }));
+    });
+    table.appendChild(h('thead', null, head));
+    var body = h('tbody');
+    rows.forEach(function (r) {
+      var tr = h('tr');
+      r.cells.forEach(function (c, i) { tr.appendChild(h('td', { class: i >= 2 ? 'p-num' : null, text: c || NBSP })); });
+      body.appendChild(tr);
+    });
+    for (var i = rows.length; i < (f.printMin || 4); i++) {
+      var blank = h('tr', { class: 'p-blank' });
+      for (var j = 0; j < 6; j++) blank.appendChild(h('td', { text: NBSP }));
+      body.appendChild(blank);
+    }
+    var total = h('tr', { class: 'p-sum' }, h('td', { colspan: '2', text: '52. Total resources and personnel' }),
+      h('td', { class: 'p-num', text: String(res) }), h('td', { text: NBSP }), h('td', { text: NBSP }), h('td', { class: 'p-num', text: String(ppl) }));
+    body.appendChild(total);
+    table.appendChild(body);
+    return table;
+  }
+
   function renderBlock(b, data, ctx, narrow) {
     if (b.chart) return orgChart(b, data, ctx);
     var title = (b.n ? b.n + '. ' : '') + b.title;
@@ -201,13 +313,37 @@
       body.appendChild(kvTable(pairs, narrow ? 1 : (b.cols || 2)));
       pairs = [];
     }
+    var skip = b.matrix ? matrixKeys(b.matrix) : [];
+    if (b.geo) {
+      skip = skip.concat(['lat', 'lon', 'gpsAcc', 'gpsAt']);
+      pairs.push({ label: 'Latitude, longitude (decimal degrees)', value: geoText(data) });
+      if (data.gpsAt) pairs.push({ label: 'Location taken', value: valueText({ kind: 'datetime' }, data.gpsAt, ctx) });
+    }
     var single = b.fields.length === 1;
     b.fields.forEach(function (f) {
       var v = data[f.k];
-      if (f.kind === 'rows') {
+      if (skip.indexOf(f.k) !== -1) return;
+      if (f.kind === 'rows' && f.slots) {
+        flush();
+        body.appendChild(planning215(f, data, ctx));
+      } else if (f.kind === 'rows' && f.k === 'commitment') {
+        flush();
+        body.appendChild(commitment209(f, data, ctx));
+      } else if (f.kind === 'rows') {
         flush();
         if (!f.hideLabel && !single) body.appendChild(h('div', { class: 'p-sub', text: f.label }));
-        body.appendChild(gridTable(f.columns, v || [], ctx, f.printMin || 3));
+        var list = v || [];
+        if (f.printSort) {
+          list = list.slice().sort(function (a, c) { return String(a[f.printSort] || '').localeCompare(String(c[f.printSort] || '')); });
+        }
+        var cols = f.printLabels ? f.columns.map(function (c) {
+          if (!f.printLabels[c.k]) return c;
+          var copy = {};
+          Object.keys(c).forEach(function (k) { copy[k] = c[k]; });
+          copy.printLabel = f.printLabels[c.k];
+          return copy;
+        }) : f.columns;
+        body.appendChild(gridTable(cols, list, ctx, f.printMin || 3));
       } else if (f.kind === 'textarea') {
         flush();
         if (!f.hideLabel) body.appendChild(h('div', { class: 'p-sub', text: f.label }));
@@ -232,6 +368,7 @@
     });
     if (b.signature) pairs.push({ label: 'Signature', value: '', sig: true });
     flush();
+    if (b.matrix) body.appendChild(matrixTable(b.matrix, data, ctx));
     return blockBox(title, body);
   }
 
@@ -247,9 +384,26 @@
       case '202':
       case '203':
       case '204':
+      case '205A':
+      case '206':
+      case '208':
+      case '215':
         return headerTable([
           hcell('1. Incident name', incidentName(ctx, true)),
           hcell('2. Operational period', periodText(p, ctx))
+        ]);
+      case '215A':
+        return headerTable([
+          hcell('1. Incident name', incidentName(ctx, false)),
+          hcell('2. Incident number', ctx.incident.number),
+          hcell('3. Date/time prepared', valueText({ kind: 'datetime' }, data.preparedAt, ctx)),
+          hcell('4. Operational period', periodText(p, ctx))
+        ]);
+      case '209':
+      case '221':
+        return headerTable([
+          hcell('1. Incident name', incidentName(ctx, false), 2),
+          hcell('2. Incident number', ctx.incident.number)
         ]);
       case '205':
         return headerTable([
@@ -280,6 +434,10 @@
     if (opts.versionText) audit.push(opts.versionText);
     audit.push('Printed ' + ctx.fmt.dt(ctx.printedAt) + ' from ' + (ctx.appName || 'FieldICS') + '.');
     box.appendChild(h('div', { class: 'p-audit', text: audit.join(' ') }));
+    (opts.signoffs || []).forEach(function (so) {
+      box.appendChild(h('div', { class: 'p-audit p-signoff', text: 'Signed off in FieldICS: ' + so.role + ' ' + so.name + (so.position ? ', ' + so.position : '') +
+        ', ' + ctx.fmt.dt(so.at) + (so.current ? ', for this version.' : ', for an earlier version.') }));
+    });
     if (opts.conflict) {
       box.appendChild(h('div', { class: 'p-warn', text: 'This form has separate versions that have not been compared yet. This printout shows the most recent one.' }));
     }
@@ -288,6 +446,7 @@
   }
 
   function titleText(def) {
+    if (!/^ICS /.test(def.code)) return def.title.toUpperCase();
     return def.title.toUpperCase() + ' (' + def.code + ')';
   }
 
@@ -343,6 +502,8 @@
       var section = null;
       for (var i = 0; i < blocks.length; i++) {
         var b = blocks[i];
+        /* Long forms (ICS 209) start some blocks on a new page, as the paper form does. */
+        if (b.pageBreak) pg.appendChild(h('div', { class: 'p-break p-pagebreak' }));
         if (b.section && b.section !== section) {
           section = b.section;
           if (section !== 'Requestor') pg.appendChild(h('div', { class: 'p-section', text: section.toUpperCase() }));
@@ -485,6 +646,7 @@
     var names = Array.from(byName.keys()).sort();
     var regT = 0;
     var otT = 0;
+    var flaggedT = 0;
     names.forEach(function (key) {
       var group = byName.get(key);
       var reg = 0;
@@ -495,6 +657,7 @@
         reg += x.cost.regCents;
         ot += x.cost.otCents;
         hours += x.cost.hours;
+        if (x.cost.flagged) flaggedT += x.cost.flaggedCents;
         rows.push({
           flag: x.cost.missingRate,
           cells: [
@@ -504,7 +667,7 @@
             d.regRate === null ? (d.regHours ? 'needed' : '') : ctx.fmt.rate(d.regRate),
             d.otRate === null ? (d.otHours ? 'needed' : '') : ctx.fmt.rate(d.otRate),
             d.fringeReg === null ? '' : d.fringeReg + '%', d.fringeOt === null ? '' : d.fringeOt + '%',
-            money(ctx, x.cost.reg), money(ctx, x.cost.ot), money(ctx, x.cost.total)
+            money(ctx, x.cost.reg) + (x.cost.flagged ? ' *' : ''), money(ctx, x.cost.ot), money(ctx, x.cost.total)
           ]
         });
       });
@@ -524,7 +687,13 @@
     total.appendChild(h('td', { class: 'p-num', text: money(ctx, otT / 100) }));
     total.appendChild(h('td', { class: 'p-num', text: money(ctx, (regT + otT) / 100) }));
     if (items.length) rows.push(total);
-    return costTable(['Date', 'Name', 'Job title', 'Type', 'Cat.', 'Site', 'Reg hrs', 'OT hrs', 'Reg rate', 'OT rate', 'Fringe reg', 'Fringe OT', 'Regular cost', 'Overtime cost', 'Total'], rows, 6);
+    var table = costTable(['Date', 'Name', 'Job title', 'Type', 'Cat.', 'Site', 'Reg hrs', 'OT hrs', 'Reg rate', 'OT rate', 'Fringe reg', 'Fringe OT', 'Regular cost', 'Overtime cost', 'Total'], rows, 6);
+    if (!flaggedT) return table;
+    var box = h('div');
+    box.appendChild(table);
+    box.appendChild(h('p', { class: 'p-cert p-flagnote', text: '* Straight time of budgeted employees on Category A or B (emergency) work: ' + money(ctx, flaggedT / 100) +
+      '. FEMA generally reimburses only overtime for budgeted employees on emergency work. It is included in the totals so the full cost is documented.' }));
+    return box;
   }
 
   function simpleSection(type, items, ctx) {
@@ -560,7 +729,10 @@
           d.rate === null ? '' : ctx.fmt.rate(d.rate),
           x.cost.missingRate ? 'needed' : money(ctx, x.cost.total)];
       } else {
-        cells = [d.contractor, d.description, d.contractNumber, d.procurement, catLabel(d.category), d.site,
+        var file = (d.procChecks || []).length;
+        cells = [d.contractor, d.description, d.contractNumber,
+          [d.procurement, d.contractType, file ? 'File checklist: ' + file + ' of ' + Forms.PROC_CHECKS.length : ''].filter(Boolean).join('; '),
+          catLabel(d.category), d.site,
           [ctx.fmt.day(d.startDate), ctx.fmt.day(d.endDate)].filter(Boolean).join(' to '),
           d.invoice, ctx.fmt.day(d.datePaid),
           d.amount === null ? 'needed' : money(ctx, x.cost.total)];
@@ -580,7 +752,7 @@
       headers = ['Date', 'Kind', 'Person or crew', 'Description', 'Vendor', 'Cat.', 'Site', 'Receipt', 'Quantity', 'Rate', 'Amount'];
       numericFrom = 8;
     } else {
-      headers = ['Contractor', 'Description of work', 'Contract/PO', 'Procurement', 'Cat.', 'Site', 'Dates worked', 'Invoice', 'Date paid', 'Amount'];
+      headers = ['Contractor', 'Description of work', 'Contract/PO', 'Procurement and type', 'Cat.', 'Site', 'Dates worked', 'Invoice', 'Date paid', 'Amount'];
       numericFrom = 9;
     }
     if (items.length) rows.push(sumRow('Total', headers.length - 1, money(ctx, totalCents / 100), headers.length));
@@ -697,7 +869,17 @@
       var x = s.types[t];
       totals.push({ cells: [FORMS[t].title, String(x.count), x.missing ? x.missing + ' need a rate or amount' : '', money(ctx, x.total)], flag: x.missing > 0 });
     });
-    pg.appendChild(blockBox('Totals by type', h('div', { class: 'p-bb' }, costTable(['Type', 'Entries', 'Missing', 'Total'], totals, 3))));
+    var totalsBox = h('div', { class: 'p-bb' }, costTable(['Type', 'Entries', 'Missing', 'Total'], totals, 3));
+    if (s.budgetedST && s.budgetedST.count && opts.types.indexOf('labor') !== -1) {
+      totalsBox.appendChild(kvTable([
+        { label: 'Included above: straight time of budgeted employees on Category A or B work (generally not eligible)', value: money(ctx, s.budgetedST.total) },
+        { label: 'Total documented without that straight time', value: money(ctx, s.totalLessBudgetedST) }
+      ], 2));
+    }
+    if (s.altDebris) {
+      totalsBox.appendChild(h('p', { class: 'p-cert', text: 'The applicant elected the PA alternative procedures for debris removal, so straight time of budgeted employees on Category A work is not set apart.' }));
+    }
+    pg.appendChild(blockBox('Totals by type', totalsBox));
 
     opts.types.forEach(function (t) {
       var items = opts.records.filter(function (x) { return x.type === t && !x.cost.donated; });
@@ -895,9 +1077,12 @@
         ['Operational periods', t.periods], ['Periods with 202, 203, and 204s', t.iapComplete], ['Check-ins', t.checkIns],
         ['Separate edits combined', t.conflictsResolved], ['Cost entries', t.costEntries],
         ['Cost entries with a rate or amount', t.costEntries ? t.costEntriesComplete + ' (' + Math.round(100 * t.costEntriesComplete / t.costEntries) + '%)' : '0'],
-        ['Costs documented', ctx.fmt.money(t.costTotal)], ['Donated resources documented', ctx.fmt.money(t.donatedValue)], ['Photos', t.photos],
+        ['Costs documented', ctx.fmt.money(t.costTotal)], ['Budgeted straight time set apart', ctx.fmt.money(t.budgetedST || 0)],
+        ['Donated resources documented', ctx.fmt.money(t.donatedValue)], ['Photos', t.photos], ['Notes', t.notes || 0],
+        ['Homes / public facilities assessed', (t.homesAssessed || 0) + ' / ' + (t.sitesAssessed || 0)],
+        ['Volunteer sign-ins / hours', (t.volunteers || 0) + ' / ' + (t.volunteerHours || 0)], ['Sign-offs', t.signoffs || 0],
         ['Package files saved / imported', t.exports + ' / ' + t.imports], ['QR transfers sent / received', t.qrSent + ' / ' + t.qrReceived],
-        ['Print jobs / PDFs saved', t.prints + ' / ' + t.pdfs]
+        ['Print jobs / PDFs saved', t.prints + ' / ' + t.pdfs], ['Closed out / archives made', (t.closedOut || 0) + ' / ' + (t.closeouts || 0)]
       ].map(function (r) { return { label: r[0], value: String(r[1]) }; });
       return blockBox(label, h('div', { class: 'p-bb p-metrics' }, kvTable(rows, 2)));
     }
@@ -916,8 +1101,148 @@
     return doc;
   }
 
+  /*
+   * ICS 207 Incident Organization Chart, drawn from the 203 for the same period.
+   * d: the 203's data. opts: { period, iapPage, versionText }
+   */
+  function chart207(ctx, d, opts) {
+    opts = opts || {};
+    var doc = h('section', { class: 'p-doc p-wide' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'INCIDENT ORGANIZATION CHART (ICS 207)' }));
+    pg.appendChild(headerTable([hcell('1. Incident name', incidentName(ctx, true)), hcell('2. Operational period', periodText(opts.period, ctx))]));
+    function box(label, value, cls) {
+      return h('div', { class: 'p-org-box' + (cls ? ' ' + cls : '') }, h('span', { class: 'p-lbl', text: label }), h('span', { class: 'p-val', text: value || NBSP }));
+    }
+    function column(chief, items) {
+      var col = h('div', { class: 'p-org-col' });
+      col.appendChild(chief);
+      items.forEach(function (x) { if (x) col.appendChild(x); });
+      return col;
+    }
+    var chart = h('div', { class: 'p-org p-org-207' });
+    chart.appendChild(h('div', { class: 'p-org-row p-org-top' }, box('Incident Commander(s)', [d.icuc, d.icDeputy ? 'Deputy: ' + d.icDeputy : ''].filter(Boolean).join('\n'))));
+    chart.appendChild(h('div', { class: 'p-org-row p-org-staff' },
+      box('Liaison Officer', d.liaison), box('Safety Officer', d.safety), box('Public Information Officer', d.pio)));
+    var ops = [];
+    if (d.opsDeputy) ops.push(box('Deputy', d.opsDeputy, 'p-org-sub'));
+    (d.staging || []).forEach(function (s) { ops.push(box('Staging area: ' + (s.area || ''), s.name, 'p-org-sub')); });
+    (d.branches || []).forEach(function (b) {
+      ops.push(box([b.branch ? 'Branch ' + b.branch : '', b.unit, b.role].filter(Boolean).join(', ') || 'Branch position', b.name, 'p-org-sub'));
+    });
+    if (d.airOpsDirector) ops.push(box('Air Operations Branch Director', d.airOpsDirector, 'p-org-sub'));
+    var plans = [box('Resources Unit', d.resourcesUnit, 'p-org-sub'), box('Situation Unit', d.situationUnit, 'p-org-sub'),
+      box('Documentation Unit', d.documentationUnit, 'p-org-sub'), box('Demobilization Unit', d.demobUnit, 'p-org-sub')];
+    (d.techSpecs || []).forEach(function (t) { plans.push(box('Technical specialist: ' + (t.specialty || ''), t.name, 'p-org-sub')); });
+    var logs = [box('Support Branch Director', d.supportDirector, 'p-org-sub'), box('Supply Unit', d.supplyUnit, 'p-org-sub p-org-unit'),
+      box('Facilities Unit', d.facilitiesUnit, 'p-org-sub p-org-unit'), box('Ground Support Unit', d.groundUnit, 'p-org-sub p-org-unit'),
+      box('Service Branch Director', d.serviceDirector, 'p-org-sub'), box('Communications Unit', d.commsUnit, 'p-org-sub p-org-unit'),
+      box('Medical Unit', d.medicalUnit, 'p-org-sub p-org-unit'), box('Food Unit', d.foodUnit, 'p-org-sub p-org-unit')];
+    var fin = [box('Time Unit', d.timeUnit, 'p-org-sub'), box('Procurement Unit', d.procurementUnit, 'p-org-sub'),
+      box('Compensation/Claims Unit', d.compClaimsUnit, 'p-org-sub'), box('Cost Unit', d.costUnit, 'p-org-sub')];
+    chart.appendChild(h('div', { class: 'p-org-row p-org-sections' },
+      column(box('Operations Section Chief', d.opsChief), ops),
+      column(box('Planning Section Chief', [d.planChief, d.planDeputy ? 'Deputy: ' + d.planDeputy : ''].filter(Boolean).join('\n')), plans),
+      column(box('Logistics Section Chief', [d.logChief, d.logDeputy ? 'Deputy: ' + d.logDeputy : ''].filter(Boolean).join('\n')), logs),
+      column(box('Finance/Admin Section Chief', [d.finChief, d.finDeputy ? 'Deputy: ' + d.finDeputy : ''].filter(Boolean).join('\n')), fin)));
+    pg.appendChild(blockBox('3. Organization chart', h('div', { class: 'p-bb' }, chart)));
+    if ((d.agencyReps || []).length) {
+      pg.appendChild(blockBox('Agency/organization representatives', h('div', { class: 'p-bb' },
+        gridTable([{ k: 'agency', label: 'Agency/organization', kind: 'text' }, { k: 'name', label: 'Name', kind: 'text' }], d.agencyReps, ctx, 0))));
+    }
+    var prep = h('div', { class: 'p-bb' });
+    prep.appendChild(kvTable([
+      { label: 'Name', value: d.prepName }, { label: 'Position/title', value: d.prepPosition },
+      { label: 'Signature', value: '', sig: true }, { label: 'Date/time', value: valueText({ kind: 'datetime' }, d.prepAt, ctx) }
+    ], 2));
+    pg.appendChild(blockBox('4. Prepared by', prep));
+    pg.appendChild(footer({ code: 'ICS 207' }, { iapPage: opts.iapPage, versionText: opts.versionText ? 'Drawn from the ICS 203. ' + opts.versionText : 'Drawn from the ICS 203.' }, ctx, 1, 1));
+    doc.appendChild(pg);
+    return doc;
+  }
+
+  /*
+   * Damage assessment summary: counts of homes by damage level, the home list, and the
+   * public facility list with approximate costs. opts: { homes: [data], sites: [data], preparedBy }
+   */
+  function damageSummary(ctx, opts) {
+    var doc = h('section', { class: 'p-doc p-wide' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'DAMAGE ASSESSMENT SUMMARY' }));
+    pg.appendChild(headerTable([
+      hcell('Incident', incidentName(ctx, true)),
+      hcell('Homes assessed', String(opts.homes.length)),
+      hcell('Public facilities', String(opts.sites.length)),
+      hcell('Printed', ctx.fmt.dt(ctx.printedAt))
+    ]));
+    var t = opts.totals;
+    var counts = ['Destroyed', 'Major', 'Minor', 'Affected', 'Inaccessible'].map(function (lvl) {
+      return { cells: [lvl, String(t.levels[lvl] || 0), String(t.insured[lvl] || 0), String(t.uninsured[lvl] || 0), String(t.renters[lvl] || 0), String(t.primary[lvl] || 0)] };
+    });
+    counts.push({ cls: 'p-sum', cells: ['Total dwellings', String(t.total), String(t.insuredAll), String(t.uninsuredAll), String(t.rentersAll), String(t.primaryAll)] });
+    pg.appendChild(blockBox('Individual Assistance: dwellings by damage level', h('div', { class: 'p-bb' },
+      h('p', { class: 'p-cert', text: 'Multi-family buildings count each unit. "With insurance" counts homeowner\'s, renter\'s, or flood coverage; "No insurance" counts confirmed none.' }),
+      costTable(['Damage level', 'Dwellings', 'With insurance', 'No insurance', 'Renters', 'Primary residences'], counts, 1))));
+    var homes = opts.homes.map(function (d) {
+      return {
+        flag: d.review,
+        cells: [d.address + (d.city ? ', ' + d.city : ''), d.dwelling + (d.dwelling === 'Multi-family' && d.units ? ' (' + d.units + ' units)' : ''), d.level,
+          d.waterInches === null || d.waterInches === undefined ? '' : d.waterInches + ' in', [d.tenure, d.primary === 'Yes' ? 'primary' : ''].filter(Boolean).join(', '),
+          (d.insurance || []).join(', '), geoText(d), d.assessedBy, valueText({ kind: 'datetime' }, d.assessedAt, ctx)]
+      };
+    });
+    pg.appendChild(blockBox('Homes assessed', h('div', { class: 'p-bb' },
+      costTable(['Address', 'Dwelling', 'Level', 'Water', 'Occupant', 'Insurance', 'Location', 'Assessed by', 'When'], homes, 99))));
+    var total = 0;
+    var sites = opts.sites.map(function (d) {
+      total += typeof d.cost === 'number' ? d.cost : 0;
+      return {
+        cells: [d.category || '', d.name, [d.address1, d.city].filter(Boolean).join(', '), d.damage, d.cause, d.labor, d.priority,
+          d.complete === null || d.complete === undefined ? '' : d.complete + '%', d.cost === null || d.cost === undefined ? 'needed' : money(ctx, d.cost)]
+      };
+    });
+    if (opts.sites.length) sites.push(sumRow('Total approximate cost', 8, money(ctx, total), 9));
+    pg.appendChild(blockBox('Public Assistance: damaged facilities and sites', h('div', { class: 'p-bb' },
+      costTable(['Cat.', 'Name of damage or facility', 'Address', 'Damage', 'Cause', 'Labor', 'Priority', 'Complete', 'Approx. cost'], sites, 7))));
+    var foot = h('div', { class: 'p-foot' });
+    foot.appendChild(h('div', { class: 'p-foot-main', text: 'Damage assessment summary | rows marked with a left bar need a second look' }));
+    foot.appendChild(h('div', { class: 'p-audit', text: 'Initial damage assessment for situational awareness and requests for assistance. Damage levels follow the FEMA damage assessment guidelines; FEMA and the state verify them. Printed ' + ctx.fmt.dt(ctx.printedAt) + ' from ' + (ctx.appName || 'FieldICS') + '.' }));
+    pg.appendChild(foot);
+    doc.appendChild(pg);
+    return doc;
+  }
+
+  /* Volunteer sign-in sheet. rows: [data]; opts.blank prints empty lines. */
+  function volunteerSheet(ctx, rows, opts) {
+    opts = opts || {};
+    var doc = h('section', { class: 'p-doc p-wide' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'VOLUNTEER SIGN-IN SHEET' }));
+    pg.appendChild(headerTable([hcell('Incident', opts.blank ? '' : incidentName(ctx, true)), hcell('Location', opts.site || ''), hcell('Date', opts.blank ? '' : ctx.fmt.dt(ctx.printedAt).slice(0, 11))]));
+    var list = rows.map(function (d) {
+      var hours = d.signIn && d.signOut ? Math.round((Date.parse(d.signOut) - Date.parse(d.signIn)) / 360000) / 10 : null;
+      return { cells: [d.name, d.organization, d.phone, d.skills, d.waiver ? 'Yes' : '', d.briefed ? 'Yes' : '', valueText({ kind: 'datetime' }, d.signIn, ctx), valueText({ kind: 'datetime' }, d.signOut, ctx), hours === null ? '' : String(hours), d.work] };
+    });
+    var lines = opts.blank ? 22 : Math.max(list.length, 8);
+    while (list.length < lines) list.push({ cls: 'p-blank', cells: ['', '', '', '', '', '', '', '', '', ''] });
+    var table = costTable(['Name', 'Organization', 'Phone', 'Skills', 'Waiver', 'Safety brief', 'Time in', 'Time out', 'Hours', 'Work performed'], list, 99);
+    var bodyBox = h('div', { class: 'p-bb' });
+    bodyBox.appendChild(h('p', { class: 'p-cert', text: 'Every volunteer signs in and out. Hours on eligible emergency work can count toward the non-federal share of FEMA Public Assistance, valued at the rate the agency pays for similar work.' }));
+    bodyBox.appendChild(table);
+    pg.appendChild(blockBox('Volunteers', bodyBox));
+    var foot = h('div', { class: 'p-foot' });
+    foot.appendChild(h('div', { class: 'p-audit', text: 'Printed ' + ctx.fmt.dt(ctx.printedAt) + ' from ' + (ctx.appName || 'FieldICS') + '.' }));
+    pg.appendChild(foot);
+    doc.appendChild(pg);
+    return doc;
+  }
+
   root.FieldPrint = {
     form: form,
+    chart207: chart207,
+    damageSummary: damageSummary,
+    volunteerSheet: volunteerSheet,
+    geoText: geoText,
     log214: log214,
     costSummary: costSummary,
     photoAppendix: photoAppendix,

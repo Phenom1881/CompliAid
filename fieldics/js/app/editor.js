@@ -6,6 +6,8 @@
   var setupSites = A.later('setupSites');
   var setupEquipment = A.later('setupEquipment');
   var photoStrip = A.later('photoStrip');
+  var photoImg = A.later('photoImg');
+  var signoffBar = A.later('signoffBar');
   var formCheckBar = A.later('formCheckBar');
   var extraTools = A.later('extraTools');
   var setupAutofill = A.later('setupAutofill');
@@ -27,6 +29,7 @@
   var ensureSession = A.ensureSession;
   var fillDatalist = A.fillDatalist;
   var fmtDT = A.fmtDT;
+  var fmtMoney = A.fmtMoney;
   var fmtShort = A.fmtShort;
   var fromLocalInput = A.fromLocalInput;
   var go = A.go;
@@ -82,8 +85,8 @@
       var inc = cur();
       var attId = obj[f.k];
       if (attId) {
-        var att = C.getAttachment(inc, attId);
-        if (att) box.appendChild(h('img', { class: 'thumb', src: att.data, alt: f.label }));
+        var img = photoImg(inc, attId, { class: 'thumb', alt: f.label });
+        if (img) box.appendChild(img);
         else box.appendChild(h('p', { class: 'hint', text: 'The image for this form is not on this device yet. Import a full package from the device that added it.' }));
       }
       var row = h('div', { class: 'row wrap' });
@@ -324,7 +327,18 @@
           }, 'btn-quiet btn-small', { 'aria-label': 'Remove ' + label.toLowerCase() + ' ' + (i + 1) }));
         card.appendChild(h('div', { class: 'row-head' }, h('span', { class: 'row-num', text: label + ' ' + (i + 1) }), tools));
         var grid = h('div', { class: 'row-grid' });
-        f.columns.forEach(function (c) { grid.appendChild(fieldControl(c, row, ctx, false)); });
+        f.columns.forEach(function (c) {
+          var col = c;
+          if (f.slots && c.slot) {
+            /* ICS 215: resource columns take the names given in block 6; unnamed ones stay hidden. */
+            var name = String(obj[f.slots + c.slot] || '').trim();
+            if (!name && C.isEmptyValue(row[c.k])) return;
+            col = {};
+            Object.keys(c).forEach(function (k) { col[k] = c[k]; });
+            col.label = (name || 'Resource ' + c.slot) + (c.part === 'req' ? ': required' : ': have');
+          }
+          grid.appendChild(fieldControl(col, row, ctx, false));
+        });
         card.appendChild(grid);
         holder.appendChild(card);
       });
@@ -377,21 +391,96 @@
     return wrap;
   }
 
+  function matrixKeys(m) {
+    var keys = new Set();
+    m.rows.forEach(function (r) { m.cols.forEach(function (c) { keys.add(m.prefix + r[0] + c[0]); }); });
+    return keys;
+  }
+
+  /* A block whose fields form a fixed table (ICS 209 blocks 30 to 32, ICS 221 block 6). */
+  function matrixControl(def, b, data, ctx) {
+    var m = b.matrix;
+    var table = h('table', { class: 'data matrix' });
+    var head = h('tr', null, h('th', { scope: 'col', text: '' }));
+    m.cols.forEach(function (c) { head.appendChild(h('th', { scope: 'col', text: c[1] })); });
+    table.appendChild(h('thead', null, head));
+    var body = h('tbody');
+    m.rows.forEach(function (r) {
+      var tr = h('tr', null, h('th', { scope: 'row', text: r[1] }));
+      m.cols.forEach(function (c) {
+        var f = F.fieldByKey(def.type, m.prefix + r[0] + c[0]);
+        var id = nextId(f.k);
+        var td = h('td', { class: 'kind-' + f.kind });
+        td.appendChild(h('label', { for: id, class: 'sr-only', text: f.label }));
+        if (f.kind === 'bool') {
+          var box = h('input', { type: 'checkbox', id: id, checked: !!data[f.k] });
+          box.addEventListener('change', function () {
+            data[f.k] = box.checked;
+            ctx.onChange(f);
+          });
+          td.appendChild(box);
+        } else {
+          td.appendChild(inputFor(f, data, id, ctx, true));
+        }
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    table.appendChild(body);
+    return h('div', { class: 'table-wrap matrix-wrap' }, table);
+  }
+
+  /* "Add my location": fills latitude and longitude (and accuracy and time, when the block has them) from the device. */
+  function geoControl(data, ctx) {
+    var status = h('span', { class: 'hint geo-status', role: 'status' });
+    var go = btn('Add my location', function () {
+      if (!navigator.geolocation) {
+        status.textContent = 'This browser cannot read the device location. Type the coordinates instead.';
+        return;
+      }
+      go.disabled = true;
+      status.textContent = 'Finding your location...';
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        var c = pos.coords;
+        data.lat = Math.round(c.latitude * 1e6) / 1e6;
+        data.lon = Math.round(c.longitude * 1e6) / 1e6;
+        if ('gpsAcc' in data) data.gpsAcc = Math.round(c.accuracy || 0);
+        if ('gpsAt' in data) data.gpsAt = new Date(pos.timestamp || Date.now()).toISOString();
+        ['lat', 'lon', 'gpsAcc', 'gpsAt'].forEach(function (k) { if (ctx.controls[k]) ctx.controls[k].set(data[k]); });
+        ctx.onChange({ k: 'lat' });
+        go.disabled = false;
+        status.textContent = 'Location added' + (c.accuracy ? ', accurate to about ' + Math.round(c.accuracy) + ' meters.' : '.');
+      }, function (err) {
+        go.disabled = false;
+        status.textContent = err && err.code === 1
+          ? 'Location is blocked for this page. Allow it in the browser or phone settings, or type the coordinates.'
+          : 'The location could not be found. Try again with a view of the sky, or type the coordinates.';
+      }, { enableHighAccuracy: true, timeout: 30000, maximumAge: 60000 });
+    }, 'btn-small', { 'data-geo': '1' });
+    return h('div', { class: 'row wrap geo-row' }, go, status);
+  }
+
   function buildEditor(def, data, ctx) {
     var wrap = h('div', { class: 'editor' });
     var section = null;
     def.blocks.forEach(function (b, i) {
       if (b.section && b.section !== section) {
         section = b.section;
-        wrap.appendChild(h('h3', { class: 'section-title', text: section === 'Tracking' ? 'Tracking' : section + ' section' }));
+        wrap.appendChild(h('h3', { class: 'section-title', text: section === 'Tracking' || section.indexOf(' ') !== -1 ? section : section + ' section' }));
       }
-      var block = h('section', { class: 'block' + (b.w === 'half' ? ' half' : ''), id: 'blk-' + i, tabindex: '-1', 'data-block': String(i) });
+      var block = h('section', { class: 'block' + (b.w === 'half' ? ' half' : '') + (b.geo ? ' geo' : ''), id: 'blk-' + i, tabindex: '-1', 'data-block': String(i) });
       var title = (b.n ? b.n + '. ' : '') + b.title;
       block.appendChild(h('h4', { class: 'block-title', text: title }));
       if (b.note) block.appendChild(h('p', { class: 'hint', text: b.note }));
+      if (b.geo) block.appendChild(geoControl(data, ctx));
       var grid = h('div', { class: 'block-grid' });
-      b.fields.forEach(function (f) { grid.appendChild(fieldControl(f, data, ctx, true)); });
-      block.appendChild(grid);
+      var inMatrix = b.matrix ? matrixKeys(b.matrix) : null;
+      b.fields.forEach(function (f) {
+        if (inMatrix && inMatrix.has(f.k)) return;
+        grid.appendChild(fieldControl(f, data, ctx, true));
+      });
+      if (grid.children.length) block.appendChild(grid);
+      if (b.matrix) block.appendChild(matrixControl(def, b, data, ctx));
       wrap.appendChild(block);
     });
     return wrap;
@@ -512,7 +601,8 @@
   function formTools(inc, type, s) {
     var tools = [];
     var n = s.period;
-    if (type === '202' || type === '203' || type === '205') {
+    if (C.isClosed(inc)) return tools;
+    if (FORMS[type].scope === 'period') {
       var prev = previousPeriodWith(inc, type, n);
       if (prev) {
         tools.push(['Copy from period ' + prev, function () {
@@ -605,12 +695,13 @@
     var head = h('section', { class: 'card' });
     var titleRow = h('div', { class: 'view-head' });
     titleRow.appendChild(h('div', null,
-      h('h2', { text: def.group === 'cost' ? def.title + (s.isNew ? ' (new entry)' : '') : def.group === 'note' ? (s.isNew ? 'New note' : 'Note') : def.code + ' ' + def.title }),
+      h('h2', { text: def.group === 'cost' || def.group === 'assess' || def.group === 'resource' ? def.title + (s.isNew ? ' (new entry)' : '') : def.group === 'note' ? (s.isNew ? 'New note' : 'Note') : def.code + ' ' + def.title }),
       opts.subtitle ? h('p', { class: 'hint', text: opts.subtitle }) : null));
     if (opts.back) titleRow.appendChild(h('a', { class: 'btn btn-quiet', href: opts.back, text: opts.backLabel || 'Back to list' }));
     head.appendChild(titleRow);
     head.appendChild(autoInfo(inc, type, s));
     head.appendChild(h('p', { class: 'hint saved-line', text: savedLine(g) }));
+    if (def.group === 'form' && g) head.appendChild(signoffBar(inc, g, s));
     if (g && g.deleted) {
       var del = h('div', { class: 'conflict-note' });
       del.appendChild(h('p', { text: 'This item was deleted ' + fmtDT(g.winner.at) + (g.winner.by ? ' by ' + g.winner.by : '') + '.' }));
@@ -631,29 +722,71 @@
     root.appendChild(head);
 
     var errorBox = h('p', { class: 'error form-error', role: 'alert', hidden: true });
+    var preview = def.group === 'cost' ? h('div', { class: 'cost-preview', id: 'costPreview', role: 'status', 'aria-live': 'polite' }) : null;
+    var closed = C.isClosed(inc);
     var ctx = {
       controls: {},
       autofillKey: def.autofill ? def.autofill.key : null,
-      onChange: function () { markDirty(); },
+      onChange: function () {
+        markDirty();
+        if (preview) costPreview(inc, type, s, preview);
+      },
       onCommit: function (f) {
         if (def.autofill && f.k === def.autofill.key) autofill(cur(), def, S.session, ctx);
+        if (preview) costPreview(inc, type, s, preview);
+        /* ICS 215: naming a resource kind adds its columns to every assignment. */
+        if (type === '215' && /^kind\d$/.test(f.k)) render();
       }
     };
-    if (def.group !== 'note') root.appendChild(formCheckBar(def, s));
-    root.appendChild(buildEditor(def, s.data, ctx));
+    if (def.group !== 'note' && !closed) root.appendChild(formCheckBar(def, s));
+    var editor = buildEditor(def, s.data, ctx);
+    if (closed) {
+      /* A closed-out incident is read-only. Every control is disabled, and nothing can be saved. */
+      var lockedBox = h('fieldset', { class: 'plain readonly', disabled: true });
+      lockedBox.appendChild(h('legend', { class: 'sr-only', text: 'Read only' }));
+      lockedBox.appendChild(editor);
+      editor = lockedBox;
+    }
+    root.appendChild(editor);
+    if (preview) {
+      costPreview(inc, type, s, preview);
+      root.appendChild(preview);
+    }
     root.appendChild(errorBox);
 
     var bar = h('div', { class: 'actionbar' });
-    bar.appendChild(btn('Save', function () { doSave(false, errorBox); }, 'btn-primary', { id: 'saveBtn' }));
-    if (def.group === 'cost') bar.appendChild(btn('Save and add another', function () { doSave(true, errorBox); }, '', { id: 'saveAnotherBtn' }));
-    else bar.appendChild(btn('Print', function () { printSession(); }, '', { id: 'printBtn' }));
+    if (!closed) bar.appendChild(btn('Save', function () { doSave(false, errorBox); }, 'btn-primary', { id: 'saveBtn' }));
+    if ((def.group === 'cost' || def.group === 'assess') && !closed) bar.appendChild(btn('Save and add another', function () { doSave(true, errorBox); }, '', { id: 'saveAnotherBtn' }));
+    if (def.group !== 'cost') bar.appendChild(btn('Print', function () { printSession(); }, closed ? 'btn-primary' : '', { id: 'printBtn' }));
     if (g) bar.appendChild(btn('History', function () { openHistory(s.rid); }, 'btn-quiet', { id: 'historyBtn' }));
-    if ((def.scope === 'many' || def.scope === 'period-many') && g && !g.deleted) {
+    if ((def.scope === 'many' || def.scope === 'period-many') && g && !g.deleted && !closed) {
       bar.appendChild(btn('Delete', function () { deleteRecord(); }, 'btn-danger', { id: 'deleteBtn' }));
     }
-    bar.appendChild(h('span', { id: 'dirtyNote', class: 'dirty', text: s.dirty ? 'Unsaved changes' : '' }));
+    bar.appendChild(h('span', { id: 'dirtyNote', class: 'dirty', text: closed ? 'Closed out: read only' : (s.dirty ? 'Unsaved changes' : '') }));
     root.appendChild(bar);
     return root;
+  }
+
+  /* The entry's cost as typed, with the notes PA reviewers would raise. */
+  function costPreview(inc, type, s, box) {
+    var d = C.sanitize(type, s.data, { lenient: true }).data;
+    var c = C.costOf(type, d, C.costOpts(inc));
+    box.textContent = '';
+    var line;
+    if (c.missingRate) line = type === 'labor' || type === 'equipment' || type === 'materials' ? 'Cost: a rate is still needed.' : 'Cost: an amount is still needed.';
+    else if (type === 'labor' && !c.donated) line = 'Cost: ' + fmtMoney(c.total) + ' (' + fmtMoney(c.reg) + ' regular, ' + fmtMoney(c.ot) + ' overtime, with fringe benefits).';
+    else line = (c.donated ? 'Donated value: ' : 'Cost: ') + fmtMoney(c.total) + '.';
+    box.appendChild(h('p', { class: 'cost-line', text: line }));
+    if (c.flagged) {
+      box.appendChild(h('p', { class: 'flag-note', text: 'Budgeted employee on Category ' + d.category + ' (emergency) work: FEMA generally reimburses only the overtime. The ' +
+        fmtMoney(c.flaggedCents / 100) + ' of straight time stays documented and is set apart in the summary.' }));
+    }
+    if (type === 'contracts' && d.contractType === 'Cost plus a percentage of cost') {
+      box.appendChild(h('p', { class: 'flag-note', text: 'Cost plus a percentage of cost contracts are not allowed with federal funds (2 CFR 200.324(c)).' }));
+    }
+    if (type === 'contracts' && d.contractType === 'Time and materials' && (d.procChecks || []).indexOf('ceiling') === -1) {
+      box.appendChild(h('p', { class: 'flag-note', text: 'Time and materials contracts need a ceiling price and a finding that no other contract type fit (2 CFR 200.318(j)).' }));
+    }
   }
 
   function doSave(addAnother, errorBox) {
@@ -750,7 +883,8 @@
   function recordRouteView(inc, type, id) {
     var def = FORMS[type];
     var back = routeBase(type);
-    var backLabel = def.group === 'cost' ? 'Back to ' + COST_NAMES[type].toLowerCase() : def.group === 'note' ? 'Back to notes' : 'Back to list';
+    var backLabel = def.group === 'cost' ? 'Back to ' + COST_NAMES[type].toLowerCase() : def.group === 'note' ? 'Back to notes'
+      : def.group === 'assess' ? 'Back to damage assessment' : type === 'volunteer' ? 'Back to volunteers' : 'Back to list';
     if (id === 'new') {
       var period = null;
       if (def.scope === 'period-many') {

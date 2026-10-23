@@ -30,6 +30,7 @@
   var track = A.track;
   var versionText = A.versionText;
   var appendixItems = A.appendixItems;
+  var waitForPhotos = A.withPhotos;
 
   /* ---------- print or PDF ---------- */
 
@@ -118,7 +119,8 @@
     var opts = {
       period: g.period ? C.periodOf(inc, g.period) : null,
       versionText: versionText(g),
-      conflict: g.conflict
+      conflict: g.conflict,
+      signoffs: C.signoffsFor(inc, g.rid)
     };
     if (extra) Object.keys(extra).forEach(function (k) { opts[k] = extra[k]; });
     return P.form(g.type, g.winner.data, printCtx(inc), opts);
@@ -162,8 +164,8 @@
     runPrint([formNode(inc, g)], { title: FORMS[type].code });
   }
 
-  function printIAP(inc, n) {
-    commitSession('quiet');
+  /* The incident action plan for one period, in IAP order, page numbered. */
+  function iapNodes(inc, n) {
     var nodes = [];
     var page = 1;
     ['202', '203'].forEach(function (t) {
@@ -175,8 +177,30 @@
     }).forEach(function (g) { nodes.push(formNode(inc, g, { iapPage: page++ })); });
     var g205 = C.getRecord(inc, C.recordId('205', n));
     if (g205 && !g205.deleted) nodes.push(formNode(inc, g205, { iapPage: page++ }));
+    /* The support forms follow, in the order of block 6 on the 202. The 207 is drawn from the 203 when the 202 lists it. */
+    var g202 = C.getRecord(inc, C.recordId('202', n));
+    var listed = g202 && !g202.deleted ? (g202.winner.data.iapItems || []) : [];
+    ['205A', '206', '207', '208'].forEach(function (t) {
+      if (t === '207') {
+        if (listed.indexOf('ICS 207') === -1) return;
+        var chart = A.chartNode(inc, n, page);
+        if (chart) {
+          nodes.push(chart);
+          page++;
+        }
+        return;
+      }
+      var g = C.getRecord(inc, C.recordId(t, n));
+      if (g && !g.deleted) nodes.push(formNode(inc, g, { iapPage: page++ }));
+    });
+    return nodes;
+  }
+
+  function printIAP(inc, n) {
+    commitSession('quiet');
+    var nodes = iapNodes(inc, n);
     if (!nodes.length) {
-      toast('No 202, 203, 204, or 205 saved for period ' + n + ' yet.');
+      toast('No IAP forms saved for period ' + n + ' yet.');
       return;
     }
     runPrint(nodes, { title: 'IAP for operational period ' + n, file: fileBase(inc, 'iap-period-' + n) });
@@ -340,17 +364,22 @@
     var blank = function (type) { return P.form(type, C.sanitize(type, {}), ctx, { versionText: 'Blank form.', blank: true }); };
     var contents = [
       'ICS 201 Incident Briefing (4 pages)', 'ICS 202 Incident Objectives', 'ICS 203 Organization Assignment List',
-      'ICS 204 Assignment List (2 copies)', 'ICS 205 Incident Radio Communications Plan', 'ICS 211 Incident Check-In List',
+      'ICS 204 Assignment List (2 copies)', 'ICS 205 Incident Radio Communications Plan', 'ICS 205A Communications List',
+      'ICS 206 Medical Plan', 'ICS 208 Safety Message/Plan', 'ICS 209 Incident Status Summary', 'ICS 211 Incident Check-In List',
       'ICS 213 General Message (3 copies)', 'ICS 213 RR Resource Request Message (2 copies)', 'ICS 214 Activity Log (2 copies)',
+      'ICS 215A Incident Action Plan Safety Analysis', 'ICS 221 Demobilization Check-Out (2 copies)',
+      'Home damage assessment (3 copies)', 'Volunteer sign-in sheet',
       'Daily labor sign-in sheet', 'Equipment use log', 'Materials, purchases, and donations log'
     ];
     var nodes = [P.paperCover(ctx, contents), blank('201'), blank('202'), blank('203'), blank('204'), blank('204'), blank('205'),
-      P.checkin211(ctx, { records: [], blank: true })];
+      blank('205A'), blank('206'), blank('208'), blank('209'), P.checkin211(ctx, { records: [], blank: true })];
     nodes.push(blank('213'), blank('213'), blank('213'), blank('213RR'), blank('213RR'));
     var log = function () {
       return P.log214(ctx, { entries: [], person: null, people: [], period: null, agency: '', preparedBy: '', preparedPosition: '', corrections: new Map(), byId: new Map(), blank: true, blankRows: 24 });
     };
     nodes.push(log(), log());
+    nodes.push(blank('215A'), blank('221'), blank('221'), blank('daHome'), blank('daHome'), blank('daHome'));
+    nodes.push(P.volunteerSheet(ctx, [], { blank: true }));
     nodes.push(P.blankSheet(ctx, 'labor'), P.blankSheet(ctx, 'equipment'), P.blankSheet(ctx, 'materials'));
     runPrint(nodes, { title: 'Paper backup kit', file: 'fieldics_paper-backup-kit_' + C.slug(setup().locality.name || 'blank') });
   }
@@ -378,17 +407,20 @@
 
   /* ---------- exports ---------- */
 
+  /* Printouts can carry photos, so each waits for photos still loading after the app opens. */
   A.runPrint = runPrint;
   A.makePDF = makePDF;
   A.formNode = formNode;
-  A.printSession = printSession;
-  A.printOne = printOne;
-  A.printIAP = printIAP;
-  A.printMany = printMany;
+  A.printSession = waitForPhotos(printSession);
+  A.printOne = waitForPhotos(printOne);
+  A.printIAP = waitForPhotos(printIAP);
+  A.iapNodes = iapNodes;
+  A.fileBase = fileBase;
+  A.printMany = waitForPhotos(printMany);
   A.printCheckins = printCheckins;
-  A.openLogPrint = openLogPrint;
+  A.openLogPrint = waitForPhotos(openLogPrint);
   A.wireLogPrint = wireLogPrint;
-  A.openCostPrint = openCostPrint;
+  A.openCostPrint = waitForPhotos(openCostPrint);
   A.wireCostPrint = wireCostPrint;
   A.printPaperKit = printPaperKit;
   A.metricsReport = metricsReport;

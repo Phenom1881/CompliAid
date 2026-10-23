@@ -52,7 +52,8 @@
     return new Uint8Array(Buffer.from(s, 'utf8'));
   }
 
-  function zip(files, when) {
+  /* The pieces of a stored zip archive, in order. A Blob made from them avoids one more copy of a large archive. */
+  function zipParts(files, when) {
     var d = when || new Date();
     var dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
     var dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
@@ -99,7 +100,11 @@
     end.setUint16(10, files.length, true);
     end.setUint32(12, cenSize, true);
     end.setUint32(16, offset, true);
-    var all = parts.concat(central, [new Uint8Array(end.buffer)]);
+    return parts.concat(central, [new Uint8Array(end.buffer)]);
+  }
+
+  function zip(files, when) {
+    var all = zipParts(files, when);
     var size = all.reduce(function (n, p) { return n + p.length; }, 0);
     var out = new Uint8Array(size);
     var at = 0;
@@ -309,6 +314,7 @@
     sheetRef: sheetRef,
     dateSerial: dateSerial,
     crc32: crc32,
-    zip: zip
+    zip: zip,
+    zipParts: zipParts
   };
 });

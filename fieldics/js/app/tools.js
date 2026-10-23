@@ -25,6 +25,9 @@
   var openExport = A.openExport;
   var pickPhotos = A.pickPhotos;
   var currentPeriodNumber = A.currentPeriodNumber;
+  var lockRequired = A.later('lockRequired');
+  var lockEnabled = A.later('lockEnabled');
+  var openLockSettings = A.later('openLockSettings');
 
   /* ---------- display ---------- */
 
@@ -91,6 +94,8 @@
 
   function backupDue(inc) {
     if (!inc) return null;
+    /* An incident kept in step through the shared folder is already off this device. */
+    if (A.syncCovers && A.syncCovers(inc)) return null;
     var pending = C.countPending(inc);
     if (!pending.total) return null;
     var limit = setup().options.backupHours || 4;
@@ -113,6 +118,17 @@
     if (!bar) return;
     bar.textContent = '';
     var parts = [];
+    if (S.ready && !S.lock.locked && lockRequired() && !lockEnabled()) {
+      parts.push(h('div', { class: 'notice notice-lock', id: 'lockRequiredNotice' },
+        h('span', { text: 'Your locality setup requires the device lock on this device. Turn it on before entering incident information. ' }),
+        btn('Turn on device lock', function () { openLockSettings(); }, 'btn-primary btn-small', { id: 'lockRequiredBtn' })));
+    }
+    var sync = A.syncStatus ? A.syncStatus() : null;
+    if (S.ready && !S.lock.locked && sync && sync.needsOk) {
+      parts.push(h('div', { class: 'notice notice-sync', id: 'syncNotice' },
+        h('span', { text: 'The shared folder needs your OK again after FieldICS restarted. ' }),
+        btn('Reconnect', function () { A.syncReconnect(); }, 'btn-primary btn-small', { id: 'syncNoticeBtn' })));
+    }
     if (inc && inc.exercise) {
       parts.push(h('div', { class: 'notice notice-exercise', id: 'exerciseNotice' },
         h('strong', { text: 'EXERCISE. ' }), 'This incident is marked as an exercise. Every printout and PDF says so.'));
@@ -234,7 +250,7 @@
   function renderQuickLog(inc) {
     var b = $('quickLogBtn');
     if (!b) return;
-    b.hidden = !inc || S.lock.locked || S.route.name === 'log';
+    b.hidden = !inc || S.lock.locked || S.route.name === 'log' || C.isClosed(inc);
   }
 
   function openQuickLog(mode) {

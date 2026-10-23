@@ -61,7 +61,14 @@
           v: function (x) { return x.cost.total; } },
         { c: 'missing', h: 'Rate missing', w: 10,
           f: function (L, r) { return 'IF(OR(AND(N(' + L.regHours + r + ')>0,' + L.regRate + r + '=""),AND(N(' + L.otHours + r + ')>0,' + L.otRate + r + '="")),"Yes","")'; },
-          v: function (x) { return x.cost.missingRate ? 'Yes' : ''; } }
+          v: function (x) { return x.cost.missingRate ? 'Yes' : ''; } },
+        /* FEMA generally reimburses only overtime for budgeted employees on Category A and B work. */
+        { c: 'budgetedST', h: 'Budgeted straight time, Cat. A or B (generally not eligible)', w: 18, money: true, sum: true,
+          f: function (L, r, inc) {
+            var cats = inc.altDebris ? 'LEFT(' + L.category + r + ',2)="B:"' : 'OR(LEFT(' + L.category + r + ',2)="A:",LEFT(' + L.category + r + ',2)="B:")';
+            return 'IF(AND(OR(' + L.personType + r + '="",' + L.personType + r + '="Applicant employee"),' + L.budgeted + r + '="Yes",' + cats + '),' + L.reg + r + ',0)';
+          },
+          v: function (x) { return x.cost.flagged ? x.cost.flaggedCents / 100 : 0; } }
       ].concat(tail, work, idCol);
     } else if (type === 'equipment') {
       list = [
@@ -102,13 +109,17 @@
     } else if (type === 'contracts') {
       list = [
         { k: 'contractor', w: 24 }, { k: 'description', w: 36, wrap: true }, { k: 'contractNumber', w: 14 }, { k: 'procurement', w: 22 },
+        { k: 'contractType', w: 20 },
         { k: 'startDate', w: 12 }, { k: 'endDate', w: 12 }, { k: 'amount', w: 14 }, { k: 'invoice', w: 14 }, { k: 'datePaid', w: 12 },
         { c: 'total', h: 'Total cost', w: 14, money: true, sum: true,
           f: function (L, r) { return 'ROUND(N(' + L.amount + r + '),2)'; },
           v: function (x) { return x.cost.total; } },
         { c: 'missing', h: 'Amount missing', w: 10,
           f: function (L, r) { return 'IF(' + L.amount + r + '="","Yes","")'; },
-          v: function (x) { return x.cost.missingRate ? 'Yes' : ''; } }
+          v: function (x) { return x.cost.missingRate ? 'Yes' : ''; } },
+        { c: 'file', h: 'Procurement file checklist', w: 16, plain: true,
+          v: function (x) { var n = (x.data.procChecks || []).length; return n ? n + ' of ' + Forms.PROC_CHECKS.length : ''; } },
+        { k: 'justification', w: 36, wrap: true }
       ].concat(tail, idCol);
     } else {
       list = [
@@ -196,7 +207,8 @@
         if (c.k) return valueCell(c.field, x.data[c.k]);
         if (c.c === 'id') return x.rec.rid;
         var cached = c.v(x);
-        return { f: c.f(L, r), v: cached, s: c.money ? 'money' : undefined };
+        if (c.plain) return cached === '' ? null : cached;
+        return { f: c.f(L, r, inc), v: cached, s: c.money ? 'money' : undefined };
       }));
     });
     var last = FIRST + list.length - 1;
@@ -323,6 +335,17 @@
       { f: 'SUM(C' + firstType + ':C' + lastType + ')', v: C.COST_TYPES.reduce(function (n, t) { return n + summary.types[t].missing; }, 0), s: 'totalLabel' },
       { f: 'SUM(D' + firstType + ':D' + lastType + ')', v: summary.total, s: 'moneyBold' }
     ]);
+    var totalAt = rows.length;
+    var lab = parts.labor;
+    rows.push([
+      'Included above: straight time of budgeted employees on Category ' + (inc.altDebris ? 'B' : 'A or B') + ' work (generally not eligible)', null, null,
+      lab.count ? { f: X.sheetRef(SHEETS.labor) + '!' + lab.L.budgetedST + lab.totalRow, v: summary.budgetedST.total, s: 'money' } : { v: 0, s: 'money' }
+    ]);
+    rows.push([
+      { v: 'Total documented without that straight time', s: 'bold' }, null, null,
+      { f: 'D' + totalAt + '-D' + (totalAt + 1), v: summary.totalLessBudgetedST, s: 'moneyBold' }
+    ]);
+    if (inc.altDebris) rows.push([{ v: 'The applicant elected the PA alternative procedures for debris removal, so Category A straight time is not set apart.', s: 'note' }]);
     rows.push([]);
     rows.push([{ v: 'FEMA category of work', s: 'head' }, { v: '', s: 'head' }, { v: '', s: 'head' }, { v: 'Total', s: 'head' }]);
     var cats = Forms.fieldByKey('labor', 'category').options.map(function (o) { return { v: o.v, t: o.t }; }).concat([{ v: '', t: 'Category not set' }]);
@@ -390,7 +413,8 @@
   function allCostsCSV(inc, opts) {
     opts = opts || {};
     var header = ['Type', 'Date', 'Description', 'Quantity', 'Unit', 'FEMA category of work', 'Location or site', 'Project number',
-      '213 RR number', 'Regular cost', 'Overtime cost', 'Total cost or donated value', 'Donated', 'Rate or amount missing', 'Record id'];
+      '213 RR number', 'Regular cost', 'Overtime cost', 'Budgeted straight time on emergency work (generally not eligible)',
+      'Total cost or donated value', 'Donated', 'Rate or amount missing', 'Record id'];
     var rows = [header.join(',')];
     var catField = Forms.fieldByKey('labor', 'category');
     C.costRecords(inc, opts.filter || {}).forEach(function (x) {
@@ -400,6 +424,7 @@
         cell(FORMS[x.type].title), cell(x.date), cell(describe(x)), cell(q[0] === null || q[0] === undefined ? '' : q[0]), cell(q[1] || ''),
         cell(cat ? cat.t : ''), cell(x.data.site), cell(x.data.project), cell(x.data.rrNumber),
         x.type === 'labor' ? x.cost.reg.toFixed(2) : '', x.type === 'labor' ? x.cost.ot.toFixed(2) : '',
+        x.cost.flagged ? (x.cost.flaggedCents / 100).toFixed(2) : '',
         x.cost.total.toFixed(2), x.cost.donated ? 'yes' : '', x.cost.missingRate ? 'yes' : '', cell(x.rec.rid)
       ].join(','));
     });

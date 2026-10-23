@@ -104,9 +104,18 @@
     });
   }
 
-  /* Loads incidents, drafts, and the locality setup from a store (encrypted or not) and shows the app. */
-  function loadData(store) {
+  var loadGen = 0;
+
+  /*
+   * Loads incidents, drafts, and the locality setup from a store (encrypted or not) and
+   * shows the app. base: a raw store or an encrypting one. Photos load in the background
+   * afterward, so opening or unlocking does not wait on them.
+   */
+  function loadData(base) {
+    var store = Store.split(base);
     S.store = store;
+    var gen = ++loadGen;
+    S.photosLoading = true;
     return Promise.all([store.loadIncidents(), store.getKV('session'), store.getKV('setup')]).then(function (res) {
       S.incidents = new Map();
       res[0].forEach(function (raw) {
@@ -123,7 +132,45 @@
       recoverSession(res[1]);
       S.route = parseRoute();
       render();
+      loadPhotos(store, gen);
+      S.photosReady.then(function () { if (gen === loadGen) A.syncLoad(); });
+    }, function (err) {
+      S.photosLoading = false;
+      S.photosReady = Promise.resolve();
+      throw err;
     });
+  }
+
+  function addPhoto(incId, att) {
+    var inc = S.incidents.get(incId);
+    if (!inc || C.getAttachment(inc, att.id)) return;
+    inc.atts.push(att);
+  }
+
+  function loadPhotos(store, gen) {
+    S.photosLoading = true;
+    S.photosReady = store.loadAtts(function (batch) {
+      if (gen !== loadGen) return false;
+      batch.forEach(function (x) { addPhoto(x.incId, x.att); });
+      if (batch.length) A.fillPhotos(false);
+      return true;
+    }).catch(function () {
+      if (gen !== loadGen) return;
+      bannerState.storage = 'Some photos could not be read from this device. Import a package file with photos to restore them.';
+      updateBanner();
+    }).then(function () {
+      if (gen !== loadGen) return;
+      S.photosLoading = false;
+      A.fillPhotos(true);
+      if (S.ready && !S.lock.locked) renderNotices(cur());
+    });
+  }
+
+  /* Stops a background photo load (the app locked). */
+  function stopPhotoLoad() {
+    loadGen++;
+    S.photosLoading = false;
+    S.photosReady = Promise.resolve();
   }
 
   function init() {
@@ -136,9 +183,11 @@
     Store.open({ upgradeIncident: function (raw) { return C.upgradeIncident(raw); } }).then(function (raw) {
       S.rawStore = raw;
       S.storageKind = raw.kind;
-      return Promise.all([raw.getKV('settings'), raw.getKV('lock'), raw.getKV('events')]).then(function (res) {
+      return Promise.all([raw.getKV('settings'), raw.getKV('lock'), raw.getKV('events'), raw.getKV('lockConvert')]).then(function (res) {
         S.settings = normalizeSettings(res[0]);
         if (!res[0]) persistSettings();
+        /* A flag left from turning the lock on that stopped before the lock was saved. */
+        if (!res[1] && res[3]) raw.putKV('lockConvert', null).catch(function () { /* harmless */ });
         S.events = res[2] && typeof res[2] === 'object' ? res[2] : {};
         applyDisplay();
         if (raw.kind === 'memory') {
@@ -175,6 +224,7 @@
   A.registerServiceWorker = registerServiceWorker;
   A.init = init;
   A.loadData = loadData;
+  A.stopPhotoLoad = stopPhotoLoad;
 
   init();
 })(window.FieldApp);

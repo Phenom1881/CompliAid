@@ -69,9 +69,9 @@
       h('div', null, h('h2', { text: 'ICS 204 Assignment Lists' }), h('p', { class: 'hint', text: 'Operational period ' + n + '. One assignment list per branch, division, or group.' })),
       deletedToggle()));
     var tools = h('div', { class: 'row wrap tools' });
-    tools.appendChild(btn('New 204', function () { startNew('204'); }, 'btn-primary', { id: 'new204' }));
+    if (!C.isClosed(inc)) tools.appendChild(btn('New 204', function () { startNew('204'); }, 'btn-primary', { id: 'new204' }));
     var prev = previousPeriodWith(inc, '204', n);
-    if (prev) {
+    if (prev && !C.isClosed(inc)) {
       tools.appendChild(btn('Copy all from period ' + prev, function () {
         var src = C.listRecords(inc, '204', prev);
         if (!window.confirm('Create ' + plural(src.length, 'new 204', 'new 204s') + ' in period ' + n + ' from period ' + prev + '?')) return;
@@ -115,7 +115,7 @@
       h('div', null, h('h2', { text: 'ICS 213 General Messages' }), h('p', { class: 'hint', text: plural(items.length, 'message', 'messages') + '.' })),
       deletedToggle()));
     var tools = h('div', { class: 'row wrap tools' });
-    tools.appendChild(btn('New message', function () { startNew('213'); }, 'btn-primary', { id: 'new213' }));
+    if (!C.isClosed(inc)) tools.appendChild(btn('New message', function () { startNew('213'); }, 'btn-primary', { id: 'new213' }));
     if (items.some(function (g) { return !g.deleted; })) tools.appendChild(btn('Print all', function () { printMany(inc, '213'); }, 'btn-quiet'));
     card.appendChild(tools);
     var ul = h('ul', { class: 'items' });
@@ -152,7 +152,7 @@
       h('div', null, h('h2', { text: 'ICS 213 RR Resource Requests' }), h('p', { class: 'hint', text: plural(all.length, 'request', 'requests') + '.' })),
       h('div', { class: 'row wrap' }, statusSel, deletedToggle())));
     var tools = h('div', { class: 'row wrap tools' });
-    tools.appendChild(btn('New request', function () { startNew('213RR'); }, 'btn-primary', { id: 'new213rr' }));
+    if (!C.isClosed(inc)) tools.appendChild(btn('New request', function () { startNew('213RR'); }, 'btn-primary', { id: 'new213rr' }));
     if (all.some(function (g) { return !g.deleted; })) tools.appendChild(btn('Print all', function () { printMany(inc, '213RR'); }, 'btn-quiet'));
     card.appendChild(tools);
     var ul = h('ul', { class: 'items' });

@@ -63,8 +63,7 @@
     closePanel();
     var def = FORMS[f.type];
     if (f.rid && def.scope !== 'period' && def.scope !== 'incident') go(routeBase(f.type) + '/' + f.rid);
-    else if (!f.rid && (f.type === '204' || f.type === '211' || f.type === '213' || f.type === '213RR' || def.group === 'cost')) go(routeBase(f.type));
-    else go('#/' + f.type);
+    else go(routeBase(f.type));
   }
 
   /* The bar above every form: jump to a block, and check what is still empty. */
@@ -143,8 +142,8 @@
     commitSession('quiet');
     var found = Checks.iap(inc, n);
     var body = openPanel('IAP check: operational period ' + n);
-    body.appendChild(h('p', { class: 'hint', text: 'Checks the 202, 203, 204s, and 205 for this period before a briefing. It looks for missing forms and blocks, not whether the plan is right.' }));
-    body.appendChild(findingList(found, 'The 202, 203, 204s, and 205 for period ' + n + ' are filled in.'));
+    body.appendChild(h('p', { class: 'hint', text: 'Checks the 202, 203, 204s, and 205 for this period, and the 205A, 206, 207, and 208 when the 202 lists them, before a briefing. It looks for missing forms and blocks, not whether the plan is right.' }));
+    body.appendChild(findingList(found, 'The IAP forms for period ' + n + ' are filled in.'));
     body.appendChild(h('div', { class: 'row end' }, btn('Print IAP', function () { closePanel(); printIAP(inc, n); }, 'btn-primary')));
   }
 

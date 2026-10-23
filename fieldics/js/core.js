@@ -28,7 +28,14 @@
 
   var FORMAT = 'field-ics-package';
   var ENC_FORMAT = 'field-ics-encrypted';
-  var VERSION = 3;
+  /*
+   * Package format 4 adds form types (ICS 205A, 206, 208, 209, 215, 215A, 221, damage
+   * assessments, volunteers). A package that holds only types version 3 knew is still
+   * written as version 3, so devices not yet updated keep sharing. A device on version 3
+   * that gets a version 4 file is told to update instead of failing on an unknown form.
+   */
+  var VERSION = 4;
+  var V3_TYPES = ['period', '201', '202', '203', '204', '205', '213', '213RR', '211', 'labor', 'equipment', 'materials', 'rentals', 'contracts', 'note', 'travel'];
   var PBKDF2_ITERATIONS = 600000;
   var MAX_ITERATIONS = 2000000;
   var MIN_PASSPHRASE = 8;
@@ -209,27 +216,31 @@
     return 10000000;
   }
 
+  /* f.min allows negative numbers (longitude); f.decimals sets the precision kept (default 4). */
   function parseNumber(v, f, label) {
     if (v === null || v === undefined || v === '') return null;
     var n;
+    var min = typeof f.min === 'number' ? f.min : 0;
     if (typeof v === 'number') {
       n = v;
     } else if (typeof v === 'string') {
       var s = v.trim().replace(/[$,%\s]/g, '');
       if (s === '') return null;
-      if (!/^(\d+\.?\d*|\.\d+)$/.test(s)) throw new Error(label + ' must be a number.');
+      var re = min < 0 ? /^-?(\d+\.?\d*|\.\d+)$/ : /^(\d+\.?\d*|\.\d+)$/;
+      if (!re.test(s)) throw new Error(label + ' must be a number.');
       n = Number(s);
     } else {
       throw new Error(label + ' must be a number.');
     }
     if (!isFinite(n)) throw new Error(label + ' must be a number.');
-    if (n < 0) throw new Error(label + ' must be zero or more.');
+    if (n < min) throw new Error(min === 0 ? label + ' must be zero or more.' : label + ' must be ' + min + ' or more.');
     if (n > maxFor(f)) throw new Error(label + ' is too large (limit ' + maxFor(f) + ').');
     if (f.kind === 'int') {
       if (Math.floor(n) !== n) throw new Error(label + ' must be a whole number.');
       return n;
     }
-    return Math.round(n * 10000) / 10000;
+    var scale = Math.pow(10, typeof f.decimals === 'number' ? f.decimals : 4);
+    return Math.round(n * scale) / scale;
   }
 
   function cleanValue(f, v, label) {
@@ -394,14 +405,23 @@
       location: cleanText(fields.location, LIMITS.field, 'Location', false),
       applicant: cleanText(fields.applicant, LIMITS.field, 'Applicant', false),
       paId: cleanText(fields.paId, 60, 'FEMA PA ID', false),
-      disasterNumber: cleanText(fields.disasterNumber, 60, 'Disaster number', false)
+      disasterNumber: cleanText(fields.disasterNumber, 60, 'Disaster number', false),
+      altDebris: fields.altDebris === true,
+      closedAt: fields.closedAt ? toISO(fields.closedAt, 'Closed time') : '',
+      closedBy: fields.closedAt ? cleanText(fields.closedBy, LIMITS.name, 'Closed by', false) : ''
     };
   }
 
-  var META_KEYS = ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'exercise'];
+  /*
+   * altDebris: the applicant elected the FEMA PA alternative procedures for debris
+   * removal, under which straight time for budgeted employees on Category A is eligible.
+   * closedAt, closedBy: the incident was closed out; the app shows it read-only.
+   */
+  var META_KEYS = ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'exercise', 'altDebris', 'closedAt', 'closedBy'];
+  var META_FLAGS = ['exercise', 'altDebris'];
 
   function metaValue(obj, k) {
-    if (k === 'exercise') return obj[k] === true;
+    if (META_FLAGS.indexOf(k) !== -1) return obj[k] === true;
     return obj[k] || '';
   }
 
@@ -418,6 +438,9 @@
       applicant: m.applicant,
       paId: m.paId,
       disasterNumber: m.disasterNumber,
+      altDebris: m.altDebris,
+      closedAt: '',
+      closedBy: '',
       createdAt: now,
       metaUpdatedAt: now,
       metaUpdatedBy: cleanText(who, LIMITS.name, 'Device name', false),
@@ -428,13 +451,33 @@
     };
   }
 
+  /* fields without closedAt keep the incident's close-out as it is. */
   function updateIncidentMeta(incident, fields, who, now) {
     now = now || nowISO();
-    var m = metaFields(fields || {});
+    var f = {};
+    Object.keys(fields || {}).forEach(function (k) { f[k] = fields[k]; });
+    if (!('closedAt' in f)) {
+      f.closedAt = incident.closedAt || '';
+      f.closedBy = incident.closedBy || '';
+    }
+    var m = metaFields(f);
     META_KEYS.forEach(function (k) { incident[k] = m[k]; });
     incident.metaUpdatedAt = now;
     incident.metaUpdatedBy = cleanText(who, LIMITS.name, 'Device name', false);
     return incident;
+  }
+
+  /* Closes an incident out (read-only in the app) or reopens it. Travels in package files. */
+  function setClosed(incident, closed, who, now) {
+    now = now || nowISO();
+    var f = incidentMeta(incident);
+    f.closedAt = closed ? now : '';
+    f.closedBy = closed ? who : '';
+    return updateIncidentMeta(incident, f, who, now);
+  }
+
+  function isClosed(incident) {
+    return !!(incident && incident.closedAt);
   }
 
   function incidentMeta(inc) {
@@ -447,6 +490,9 @@
       paId: inc.paId || '',
       disasterNumber: inc.disasterNumber || '',
       exercise: inc.exercise === true,
+      altDebris: inc.altDebris === true,
+      closedAt: inc.closedAt || '',
+      closedBy: inc.closedBy || '',
       createdAt: inc.createdAt,
       metaUpdatedAt: inc.metaUpdatedAt,
       metaUpdatedBy: inc.metaUpdatedBy || ''
@@ -478,11 +524,12 @@
     if (!raw || typeof raw !== 'object' || typeof raw.id !== 'string' || !ID_RE.test(raw.id)) return null;
     now = now || nowISO();
     var inc = copyOwn(raw);
-    ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'metaUpdatedBy'].forEach(function (k) {
+    ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'metaUpdatedBy', 'closedAt', 'closedBy'].forEach(function (k) {
       if (typeof inc[k] !== 'string') inc[k] = '';
     });
     if (!inc.name) inc.name = 'Untitled incident';
     inc.exercise = inc.exercise === true;
+    inc.altDebris = inc.altDebris === true;
     if (typeof inc.createdAt !== 'string') inc.createdAt = now;
     if (typeof inc.metaUpdatedAt !== 'string') inc.metaUpdatedAt = inc.createdAt;
     if (inc.lastExportAt !== null && typeof inc.lastExportAt !== 'string') inc.lastExportAt = null;
@@ -507,8 +554,11 @@
 
   /* ---------- ICS 214 entries ---------- */
 
+  var CLOSED_TEXT = 'This incident is closed out. Reopen it under Share and print to make changes.';
+
   function addEntry(incident, fields, now) {
     now = now || nowISO();
+    if (isClosed(incident)) throw new Error(CLOSED_TEXT);
     var text = cleanText(fields.text, LIMITS.text, 'Activity', true);
     if (!text) throw new Error('Enter what happened.');
     var author = cleanText(fields.author, LIMITS.name, 'Name', false);
@@ -684,6 +734,7 @@
    */
   function saveRecord(inc, o, now) {
     now = now || nowISO();
+    if (isClosed(inc)) throw new Error(CLOSED_TEXT);
     if (!isType(o.type)) throw new Error('Unknown form type.');
     var period = o.period === undefined ? null : o.period;
     var rid = o.rid || recordId(o.type, period) || uid();
@@ -753,6 +804,34 @@
     return out;
   }
 
+  /* ---------- sign-offs ---------- */
+
+  /*
+   * Sign-offs on a form record, oldest first: { rid, role, name, position, at, version,
+   * current }. current is true when the sign-off is for the version shown now; a later
+   * edit leaves earlier sign-offs on the earlier version.
+   */
+  function signoffsFor(inc, rid) {
+    var g = getRecord(inc, rid);
+    var current = g ? g.winner.id : '';
+    return listRecords(inc, 'signoff').filter(function (s) { return s.winner.data.target === rid; }).map(function (s) {
+      var d = s.winner.data;
+      return { rid: s.rid, role: d.role, name: d.name, position: d.position, at: d.at, version: d.version, current: d.version === current };
+    }).sort(function (a, b) { return a.at < b.at ? -1 : 1; });
+  }
+
+  function signOff(inc, target, o, now) {
+    now = now || nowISO();
+    var g = getRecord(inc, target);
+    if (!g || g.deleted) throw new Error('Save the form before signing off.');
+    if (g.conflict) throw new Error('This form has versions to compare. Settle them before signing off.');
+    return saveRecord(inc, {
+      type: 'signoff',
+      data: { target: target, version: g.winner.id, role: o.role, name: o.name, position: o.position || '', at: now },
+      by: o.by || o.name, deviceId: o.deviceId || '', deviceName: o.deviceName || ''
+    }, now);
+  }
+
   /* ---------- attachments (images) ---------- */
 
   function cleanAttachment(raw, where) {
@@ -777,6 +856,7 @@
 
   function addAttachment(inc, o, now) {
     now = now || nowISO();
+    if (isClosed(inc)) throw new Error(CLOSED_TEXT);
     var att = cleanAttachment({
       id: 'att-' + uid(),
       mime: o.mime,
@@ -852,10 +932,12 @@
     var photoSince = opts.changesOnly ? photoExportAt(inc) : null;
     function fresh(x) { return !since || (x._rx && x._rx > since); }
     function freshPhoto(x) { return !photoSince || (x._rx && x._rx > photoSince); }
+    var revs = inc.revs.filter(fresh).map(publicRev);
+    var newer = revs.some(function (r) { return V3_TYPES.indexOf(r.type) === -1; });
     return {
       photos: opts.noPhotos ? 'left-out' : 'included',
       format: FORMAT,
-      version: VERSION,
+      version: newer ? VERSION : 3,
       exportedAt: now,
       deviceId: opts.deviceId || '',
       deviceName: opts.deviceName || '',
@@ -863,7 +945,7 @@
       since: since || null,
       incident: incidentMeta(inc),
       entries: inc.entries.filter(fresh).map(publicEntry),
-      revs: inc.revs.filter(fresh).map(publicRev),
+      revs: revs,
       atts: opts.noPhotos ? [] : inc.atts.filter(freshPhoto).map(publicAtt)
     };
   }
@@ -996,9 +1078,13 @@
     if (attsRaw.length > LIMITS.atts) throw new Error('The package has too many images.');
     var now = nowISO();
     if (inc.exercise !== undefined && typeof inc.exercise !== 'boolean') throw new Error('The package incident is not valid.');
+    if (inc.altDebris !== undefined && typeof inc.altDebris !== 'boolean') throw new Error('The package incident is not valid.');
     var meta = {
       id: inc.id,
       exercise: inc.exercise === true,
+      altDebris: inc.altDebris === true,
+      closedAt: inc.closedAt ? toISO(inc.closedAt, 'Closed time') : '',
+      closedBy: inc.closedAt ? cleanText(inc.closedBy, LIMITS.name, 'Closed by', false) : '',
       name: name,
       number: cleanText(inc.number, 60, 'Incident number', false),
       location: cleanText(inc.location, LIMITS.field, 'Location', false),
@@ -1010,7 +1096,16 @@
       metaUpdatedBy: cleanText(inc.metaUpdatedBy, LIMITS.name, 'Updated by', false)
     };
     var entries = pkg.entries.map(function (raw, i) { return cleanEntry(raw, inc.id, i); });
-    var revs = revsRaw.map(function (raw, i) { return cleanRev(raw, i); });
+    /* Forms from a newer version of FieldICS are skipped and counted, not refused. */
+    var skipped = 0;
+    var known = revsRaw.filter(function (raw) {
+      if (raw && typeof raw === 'object' && typeof raw.type === 'string' && !isType(raw.type) && /^[A-Za-z0-9]{1,40}$/.test(raw.type)) {
+        skipped++;
+        return false;
+      }
+      return true;
+    });
+    var revs = known.map(function (raw, i) { return cleanRev(raw, i); });
     var shape = new Map();
     revs.forEach(function (r) {
       var s = shape.get(r.rid);
@@ -1035,7 +1130,8 @@
       deviceName: cleanText(pkg.deviceName, LIMITS.name, 'Device name', false),
       deviceId: cleanText(pkg.deviceId, LIMITS.field, 'Device id', false),
       scope: pkg.scope === 'changes' ? 'changes' : 'full',
-      photosLeftOut: pkg.photos === 'left-out'
+      photosLeftOut: pkg.photos === 'left-out',
+      formsSkipped: skipped
     };
   }
 
@@ -1089,6 +1185,7 @@
       exportedAt: parsed.exportedAt,
       scope: parsed.scope,
       photosLeftOut: parsed.photosLeftOut,
+      formsSkipped: parsed.formsSkipped,
       newConflicts: []
     };
     var before = new Set();
@@ -1182,6 +1279,16 @@
       if (!before.has(g.rid)) report.newConflicts.push(g.rid);
     });
     return { incident: inc, report: report };
+  }
+
+  /*
+   * Merges a package into an incident in place, so screens and code holding the
+   * incident keep working with it. Returns the merge report.
+   */
+  function mergeInto(target, pkg, opts) {
+    var res = mergePackage(target, pkg, opts);
+    Object.keys(res.incident).forEach(function (k) { target[k] = res.incident[k]; });
+    return res.report;
   }
 
   /* ---------- encryption ---------- */
@@ -1318,8 +1425,30 @@
     return false;
   }
 
-  /* Computes the cost (or donated value) of one entry. Amounts are rounded to the cent. */
-  function costOf(type, d) {
+  /*
+   * FEMA Public Assistance labor rule: for Emergency Work (Categories A and B), only
+   * overtime is eligible for an applicant's budgeted employees. Straight time is eligible
+   * for unbudgeted employees, and for everyone on Permanent Work (C to G). An applicant
+   * that elected the alternative procedures for debris removal can claim budgeted
+   * straight time on Category A. (FEMA IS-1000, Public Assistance Program and Policy Guide.)
+   * True when an entry's straight time falls under that rule. opts.altDebris: the
+   * applicant elected the alternative procedures.
+   */
+  function budgetedStraightTime(type, d, opts) {
+    if (type !== 'labor' || !d) return false;
+    if (d.personType && d.personType !== 'Applicant employee') return false;
+    if (d.budgeted !== 'Yes') return false;
+    if (d.category === 'B') return true;
+    if (d.category === 'A') return !(opts && opts.altDebris);
+    return false;
+  }
+
+  /*
+   * Computes the cost (or donated value) of one entry. Amounts are rounded to the cent.
+   * opts.altDebris: see budgetedStraightTime. The result's flaggedCents is the budgeted
+   * straight time that is generally not eligible; it stays in the documented total.
+   */
+  function costOf(type, d, opts) {
     var reg = 0;
     var ot = 0;
     var total = 0;
@@ -1354,6 +1483,7 @@
         missing = d.rate === null || d.rate === undefined || d.qty === null || d.qty === undefined;
       }
     }
+    var flagged = !donated && budgetedStraightTime(type, d, opts) && n0(d.regHours) > 0;
     return {
       reg: reg / 100,
       ot: ot / 100,
@@ -1363,8 +1493,15 @@
       otCents: ot,
       hours: type === 'labor' ? n0(d.regHours) + n0(d.otHours) : (type === 'equipment' && d.usageUnit !== 'Miles' ? n0(d.usage) : 0),
       missingRate: missing,
-      donated: donated
+      donated: donated,
+      flagged: flagged,
+      flaggedCents: flagged ? reg : 0,
+      flaggedHours: flagged ? n0(d.regHours) : 0
     };
+  }
+
+  function costOpts(inc) {
+    return { altDebris: !!(inc && inc.altDebris === true) };
   }
 
   function costDate(type, d) {
@@ -1381,13 +1518,14 @@
     filter = filter || {};
     var site = filter.site ? String(filter.site).trim().toLowerCase() : '';
     var out = [];
+    var opts = costOpts(inc);
     index(inc).byRid.forEach(function (g) {
       if (g.deleted || COST_TYPES.indexOf(g.type) === -1) return;
       if (filter.type && g.type !== filter.type) return;
       var d = g.winner.data;
       if (filter.category && d.category !== filter.category) return;
       if (site && String(d.site || '').trim().toLowerCase() !== site) return;
-      var cost = costOf(g.type, d);
+      var cost = costOf(g.type, d, opts);
       if (filter.donated === true && !cost.donated) return;
       if (filter.donated === false && cost.donated) return;
       out.push({ rec: g, type: g.type, data: d, cost: cost, date: costDate(g.type, d) });
@@ -1406,6 +1544,7 @@
       types[t] = { count: 0, totalCents: 0, regCents: 0, otCents: 0, hours: 0, missing: 0 };
     });
     var donated = { count: 0, totalCents: 0, hours: 0, missing: 0, labor: 0, equipment: 0, materials: 0 };
+    var flagged = { count: 0, totalCents: 0, hours: 0, byCategory: {} };
     var byCategory = new Map();
     var grand = 0;
     var first = '';
@@ -1432,6 +1571,12 @@
       var key = x.data.category || '';
       byCategory.set(key, (byCategory.get(key) || 0) + x.cost.totalCents);
       grand += x.cost.totalCents;
+      if (x.cost.flagged) {
+        flagged.count++;
+        flagged.totalCents += x.cost.flaggedCents;
+        flagged.hours += x.cost.flaggedHours;
+        flagged.byCategory[key] = (flagged.byCategory[key] || 0) + x.cost.flaggedCents / 100;
+      }
       if (x.date && (!first || x.date < first)) first = x.date;
       if (x.date && (!last || x.date > last)) last = x.date;
     });
@@ -1445,7 +1590,14 @@
       t.ot = t.otCents / 100;
     });
     donated.total = donated.totalCents / 100;
-    return { types: types, categories: cats, total: grand / 100, firstDate: first, lastDate: last, donated: donated };
+    flagged.total = flagged.totalCents / 100;
+    return {
+      types: types, categories: cats, total: grand / 100, firstDate: first, lastDate: last, donated: donated,
+      /* Straight time of budgeted employees on Categories A and B: documented, generally not eligible. */
+      budgetedST: flagged,
+      totalLessBudgetedST: (grand - flagged.totalCents) / 100,
+      altDebris: inc.altDebris === true
+    };
   }
 
   /* ---------- check-ins and resource requests to cost entries ---------- */
@@ -1614,7 +1766,7 @@
     var def = FORMS[type];
     var fields = Forms.fieldsOf(def);
     var header = fields.map(function (f) { return f.label; });
-    if (type === 'labor') header.push('Regular cost', 'Overtime cost');
+    if (type === 'labor') header.push('Regular cost', 'Overtime cost', 'Budgeted straight time on emergency work (generally not eligible)');
     header.push('Total cost or donated value', 'Donated', 'Rate or amount missing', 'Record id', 'Last saved by', 'Last saved (UTC)');
     var rows = [header.map(function (x) { return csvCell(x, true); }).join(',')];
     var f2 = {};
@@ -1622,7 +1774,7 @@
     f2.type = type;
     costRecords(inc, f2).forEach(function (x) {
       var cells = fields.map(function (f) { return csvValue(f, x.data[f.k]); });
-      if (type === 'labor') cells.push(csvCell(x.cost.reg.toFixed(2)), csvCell(x.cost.ot.toFixed(2)));
+      if (type === 'labor') cells.push(csvCell(x.cost.reg.toFixed(2)), csvCell(x.cost.ot.toFixed(2)), x.cost.flagged ? csvCell((x.cost.flaggedCents / 100).toFixed(2)) : '');
       cells.push(
         csvCell(x.cost.total.toFixed(2)),
         x.cost.donated ? 'yes' : '',
@@ -1659,6 +1811,9 @@
     diffFields: diffFields,
     createIncident: createIncident,
     updateIncidentMeta: updateIncidentMeta,
+    setClosed: setClosed,
+    isClosed: isClosed,
+    incidentMeta: incidentMeta,
     upgradeIncident: upgradeIncident,
     addEntry: addEntry,
     correctionMap: correctionMap,
@@ -1677,15 +1832,20 @@
     formsInPeriod: formsInPeriod,
     addAttachment: addAttachment,
     getAttachment: getAttachment,
+    signoffsFor: signoffsFor,
+    signOff: signOff,
     buildPackage: buildPackage,
     markExported: markExported,
     countPending: countPending,
     parsePackage: parsePackage,
     mergePackage: mergePackage,
+    mergeInto: mergeInto,
     encryptPackage: encryptPackage,
     decryptPackage: decryptPackage,
     parseFileText: parseFileText,
     costOf: costOf,
+    costOpts: costOpts,
+    budgetedStraightTime: budgetedStraightTime,
     isDonated: isDonated,
     costDate: costDate,
     hoursByDay: hoursByDay,

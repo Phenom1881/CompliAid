@@ -143,7 +143,7 @@
     var lastEdit = changed[changed.length - 1];
     if (lastEdit) extra.push('Edited ' + fmtDT(lastEdit.at) + (lastEdit.by ? ' by ' + lastEdit.by : '') + '. Earlier wording is in History');
     if (extra.length) li.appendChild(h('p', { class: 'note-meta', text: extra.join('. ') + '.' }));
-    if (!g.deleted) {
+    if (!g.deleted && !C.isClosed(inc)) {
       var row = h('div', { class: 'note-actions' });
       row.appendChild(btn(d.pinned ? 'Unpin' : 'Pin', function () {
         changeNote(inc, g, { pinned: !d.pinned });
@@ -217,7 +217,7 @@
       ta.focus();
       toast('Note added.');
     });
-    card.appendChild(form);
+    if (!C.isClosed(inc)) card.appendChild(form);
 
     /* Filters. */
     var q = h('input', { type: 'search', id: 'noteSearch', placeholder: 'Search notes', 'aria-label': 'Search notes' });
@@ -264,18 +264,23 @@
 
   /* ---------- printing ---------- */
 
-  function printNotes(inc) {
-    commitSession('quiet');
-    var term = S.noteFilter.q.trim().toLowerCase();
-    var list = sorted(C.listRecords(inc, 'note')).filter(function (g) { return matches(g, S.noteFilter.show, term); });
+  /* The notes printout. filter: { show, q } (the screen's filter), or none for every note. */
+  function notesNode(inc, filter) {
+    filter = filter || { show: 'all', q: '' };
+    var term = filter.q.trim().toLowerCase();
+    var list = sorted(C.listRecords(inc, 'note')).filter(function (g) { return matches(g, filter.show, term); });
     var logged = loggedSet(inc);
     var rows = list.map(function (g) {
       var d = g.winner.data;
       var status = [d.pinned ? 'Pinned' : '', d.kind === 'Follow-up' ? (d.done ? 'Done' : 'Open') : '', logged.has(noteSource(g.rid)) ? 'In the 214' : ''].filter(Boolean).join(', ');
       return { time: g.created, by: g.revs[0].by || '', kind: d.kind || 'Info', text: d.text || '', status: status };
     });
-    var filtered = S.noteFilter.show !== 'all' || term;
-    window.FieldPrint && runPrint([window.FieldPrint.notesList(printCtx(inc), rows, { filtered: filtered })], { title: 'Notes' });
+    return window.FieldPrint.notesList(printCtx(inc), rows, { filtered: filter.show !== 'all' || !!term });
+  }
+
+  function printNotes(inc) {
+    commitSession('quiet');
+    runPrint([notesNode(inc, S.noteFilter)], { title: 'Notes' });
   }
 
   /* ---------- exports ---------- */
@@ -283,5 +288,6 @@
   A.addNote = addNote;
   A.notesView = notesView;
   A.printNotes = printNotes;
+  A.notesNode = notesNode;
   A.noteSource = noteSource;
 })(window.FieldApp);

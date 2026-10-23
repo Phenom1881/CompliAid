@@ -7,14 +7,14 @@
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./forms.js'), require('./core.js'));
+    module.exports = factory(require('./forms.js'), require('./core.js'), require('./assess.js'));
   } else {
-    root.FieldMetrics = factory(root.FieldICSForms, root.FieldICS);
+    root.FieldMetrics = factory(root.FieldICSForms, root.FieldICS, root.FieldAssess);
   }
-})(typeof self !== 'undefined' ? self : this, function (Forms, C) {
+})(typeof self !== 'undefined' ? self : this, function (Forms, C, Assess) {
   'use strict';
 
-  var EVENT_KEYS = ['exports', 'imports', 'prints', 'pdfs', 'qrSent', 'qrReceived'];
+  var EVENT_KEYS = ['exports', 'imports', 'prints', 'pdfs', 'qrSent', 'qrReceived', 'closeouts'];
 
   function minutesBetween(a, b) {
     var x = Date.parse(a);
@@ -67,6 +67,8 @@
     var photos = C.photoRefs(inc).length;
     var t201 = firstSave(inc, '201');
     var t202 = firstSave(inc, '202');
+    var volunteers = C.listRecords(inc, 'volunteer');
+    var volunteerHours = volunteers.reduce(function (sum, g) { return sum + (Assess.volunteerHours(g.winner.data) || 0); }, 0);
     var out = {
       id: inc.id,
       name: inc.name,
@@ -92,7 +94,15 @@
       costEntriesComplete: complete,
       costTotal: summary.total,
       donatedValue: summary.donated.total,
-      photos: photos
+      budgetedST: summary.budgetedST.total,
+      photos: photos,
+      notes: C.listRecords(inc, 'note').length,
+      homesAssessed: C.listRecords(inc, 'daHome').length,
+      sitesAssessed: C.listRecords(inc, 'daSite').length,
+      volunteers: volunteers.length,
+      volunteerHours: Math.round(volunteerHours * 10) / 10,
+      signoffs: C.listRecords(inc, 'signoff').length,
+      closedOut: C.isClosed(inc)
     };
     EVENT_KEYS.forEach(function (k) { out[k] = typeof ev[k] === 'number' ? ev[k] : 0; });
     return out;
@@ -104,13 +114,17 @@
     rows.sort(function (a, b) { return a.createdAt < b.createdAt ? -1 : 1; });
     function total(list) {
       var t = { count: list.length, logEntries: 0, formsTotal: 0, versions: 0, people: 0, devices: 0, periods: 0, iapComplete: 0,
-        checkIns: 0, costEntries: 0, costEntriesComplete: 0, costTotal: 0, donatedValue: 0, photos: 0, conflictsResolved: 0 };
+        checkIns: 0, costEntries: 0, costEntriesComplete: 0, costTotal: 0, donatedValue: 0, budgetedST: 0, photos: 0, conflictsResolved: 0,
+        notes: 0, homesAssessed: 0, sitesAssessed: 0, volunteers: 0, volunteerHours: 0, signoffs: 0, closedOut: 0 };
       EVENT_KEYS.forEach(function (k) { t[k] = 0; });
       list.forEach(function (r) {
         Object.keys(t).forEach(function (k) { if (k !== 'count' && typeof r[k] === 'number') t[k] += r[k]; });
+        if (r.closedOut) t.closedOut++;
       });
       t.costTotal = Math.round(t.costTotal * 100) / 100;
       t.donatedValue = Math.round(t.donatedValue * 100) / 100;
+      t.budgetedST = Math.round(t.budgetedST * 100) / 100;
+      t.volunteerHours = Math.round(t.volunteerHours * 10) / 10;
       return t;
     }
     return {
@@ -127,9 +141,11 @@
     ['periods', 'Operational periods'], ['iapComplete', 'Periods with 202, 203, and 204s'],
     ['minutesTo201', 'Minutes to first 201'], ['minutesTo202', 'Minutes to first 202'], ['checkIns', 'Check-ins'],
     ['costEntries', 'Cost entries'], ['costEntriesComplete', 'Cost entries with rate or amount'], ['costTotal', 'Costs documented ($)'],
-    ['donatedValue', 'Donated resources value ($)'], ['photos', 'Photos'],
+    ['donatedValue', 'Donated resources value ($)'], ['budgetedST', 'Budgeted straight time set apart ($)'], ['photos', 'Photos'], ['notes', 'Notes'],
+    ['homesAssessed', 'Homes assessed'], ['sitesAssessed', 'Public facilities assessed'], ['volunteers', 'Volunteer sign-ins'], ['volunteerHours', 'Volunteer hours'],
+    ['signoffs', 'Sign-offs'], ['closedOut', 'Closed out'],
     ['exports', 'Package files saved'], ['imports', 'Package files imported'], ['qrSent', 'QR transfers sent'], ['qrReceived', 'QR transfers received'],
-    ['prints', 'Print jobs'], ['pdfs', 'PDFs saved']
+    ['prints', 'Print jobs'], ['pdfs', 'PDFs saved'], ['closeouts', 'Close-out archives made']
   ];
 
   function toCSV(rep) {

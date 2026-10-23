@@ -163,4 +163,4 @@ When you change any app file, change `CACHE` in `sw.js` (for example to `field-i
 
 ## License
 
-Not chosen yet. `docs/license-options.md` lays out the choices. Decide before publishing the repository or sharing the code with other localities. Third-party parts are listed in THIRD_PARTY_NOTICES.md.
+Copyright 2026 CompliAid. All rights reserved (see LICENSE). Local governments and nonprofits may use FieldICS free during the preview under PREVIEW-LICENSE.md. Third-party parts keep their own licenses, listed in THIRD_PARTY_NOTICES.md.

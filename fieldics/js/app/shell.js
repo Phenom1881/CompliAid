@@ -37,6 +37,7 @@
   var shareView = A.later('shareView');
   var sortedIncidents = A.sortedIncidents;
   var welcomeView = A.later('welcomeView');
+  var closedBanner = A.later('closedBanner');
 
   /* ---------- render shell ---------- */
 
@@ -58,6 +59,11 @@
       text = 'Not yet saved for offline use';
     }
     if (offline) text += ' | No connection';
+    var sync = A.syncStatus ? A.syncStatus() : null;
+    if (sync && sync.on) {
+      text += sync.needsOk ? ' | Shared folder: needs OK' : (sync.error ? ' | Shared folder: problem' : (sync.lastOkAt ? ' | Shared folder: in step' : ' | Shared folder: connecting'));
+      if (sync.error || sync.needsOk) ok = false;
+    }
     chip.textContent = text;
     chip.className = 'chip ' + (ok ? 'ok' : 'warn');
   }
@@ -68,6 +74,21 @@
     bar.textContent = '';
     bar.hidden = S.incidents.size === 0;
     if (bar.hidden) return;
+    /* On a phone the strip folds to one line; this button shows the incident and period and opens the controls. */
+    var context = bar.parentNode;
+    context.classList.toggle('is-open', !!S.stripOpen);
+    if (inc) {
+      var pn = currentPeriodNumber(inc);
+      var summary = h('button', { type: 'button', class: 'strip-summary', id: 'stripToggle', 'aria-expanded': S.stripOpen ? 'true' : 'false', 'aria-controls': 'incidentBar' },
+        h('span', { class: 'strip-name', text: inc.name + (inc.number ? ' (' + inc.number + ')' : '') }),
+        h('span', { class: 'strip-period', text: (inc.exercise ? 'EXERCISE | ' : '') + (C.isClosed(inc) ? 'Closed | ' : '') + (pn ? 'OP ' + pn : 'No period') }),
+        h('span', { class: 'strip-caret', 'aria-hidden': 'true', text: S.stripOpen ? 'Less' : 'More' }));
+      summary.addEventListener('click', function () {
+        S.stripOpen = !S.stripOpen;
+        renderIncidentBar(cur());
+      });
+      bar.appendChild(summary);
+    }
     var sel = h('select', { id: 'incidentSelect', 'aria-label': 'Incident' });
     sortedIncidents().forEach(function (i) {
       sel.appendChild(h('option', { value: i.id, text: i.name + (i.number ? ' (' + i.number + ')' : ''), selected: i.id === S.currentId }));
@@ -186,14 +207,16 @@
     var el;
     if (r.name === 'log') el = logView(inc);
     else if (r.name === '201') el = editorView(inc, '201', C.recordId('201'), null, false);
-    else if (r.name === '202' || r.name === '203' || r.name === '205') el = periodFormView(inc, r.name);
+    else if (A.PERIOD_ROUTES.indexOf(r.name) !== -1) el = periodFormView(inc, A.routeType(r.name));
     else if (r.name === '204') el = r.id ? recordRouteView(inc, '204', r.id) : list204View(inc);
     else if (r.name === '211') el = r.id ? recordRouteView(inc, '211', r.id) : list211View(inc);
     else if (r.name === 'notes') el = r.id ? recordRouteView(inc, 'note', r.id) : notesView(inc);
     else if (r.name === '213') el = r.id ? recordRouteView(inc, '213', r.id) : list213View(inc);
     else if (r.name === '213rr') el = r.id ? recordRouteView(inc, '213RR', r.id) : list213RRView(inc);
     else if (r.name === 'costs') el = costsView(inc, r);
+    else if (A.views[r.name]) el = A.views[r.name](inc, r);
     else el = shareView(inc);
+    if (C.isClosed(inc)) view.appendChild(closedBanner(inc));
     view.appendChild(el);
     if (S.pendingCompare && S.session && S.session.rid === S.pendingCompare) {
       var rid = S.pendingCompare;

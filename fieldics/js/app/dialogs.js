@@ -47,11 +47,13 @@
       $('incPaId').value = inc.paId || '';
       $('incDisaster').value = inc.disasterNumber || '';
       $('incExercise').checked = inc.exercise === true;
-      $('incCostBox').open = !!(inc.applicant || inc.paId || inc.disasterNumber);
+      $('incAltDebris').checked = inc.altDebris === true;
+      $('incCostBox').open = !!(inc.applicant || inc.paId || inc.disasterNumber || inc.altDebris);
     } else {
       ['incName', 'incNumber', 'incLocation', 'incApplicant', 'incPaId', 'incDisaster'].forEach(function (id) { $(id).value = ''; });
       $('incApplicant').value = A.setup().locality.applicant || '';
       $('incExercise').checked = false;
+      $('incAltDebris').checked = false;
       $('incCostBox').open = false;
       var start = nowMinute();
       start.setMinutes(0);
@@ -71,7 +73,8 @@
       applicant: $('incApplicant').value,
       paId: $('incPaId').value,
       disasterNumber: $('incDisaster').value,
-      exercise: $('incExercise').checked
+      exercise: $('incExercise').checked,
+      altDebris: $('incAltDebris').checked
     };
   }
 
@@ -125,6 +128,7 @@
       clearStoredSession();
       S.incidents.delete(inc.id);
       if (S.store) S.store.deleteIncident(inc.id).catch(function () { /* removed from view regardless */ });
+      if (A.syncStatus && A.syncStatus().on) A.syncForget(inc.id);
       var rest = sortedIncidents();
       S.currentId = rest.length ? rest[0].id : null;
       S.settings.lastIncidentId = S.currentId;
@@ -240,6 +244,8 @@
     $('setText').value = S.settings.textSize;
     $('setLockState').textContent = { off: 'Off', on: 'On', locked: 'Locked' }[A.lockStatus()];
     $('setSetupState').textContent = A.setup().locality.name || (S.setup ? 'Loaded' : 'None loaded');
+    $('setSyncState').textContent = A.syncStatus ? A.syncStatus().label : '';
+    $('setPracticeBtn').hidden = !S.ready || S.lock.locked;
     var kinds = { indexeddb: 'device storage (IndexedDB)', localstorage: 'basic browser storage', memory: 'memory only (nothing is kept when this page closes)' };
     var info = APP_NAME + '. Device ID ' + S.settings.deviceId.slice(0, 8) + '. Saving to ' + (kinds[S.storageKind] || 'unknown storage') + '. ';
     if (S.persisted === true) info += 'The browser has marked this data as protected from automatic cleanup. ';
@@ -274,6 +280,10 @@
     $('setSetupBtn').addEventListener('click', fromSettings(function () { A.openSetup(); }));
     $('setLockBtn').addEventListener('click', fromSettings(function () { A.openLockSettings(); }));
     $('setClockBtn').addEventListener('click', fromSettings(function () { A.openClockCheck(); }));
+    $('setSyncBtn').addEventListener('click', fromSettings(function () { A.openSyncSettings(); }));
+    $('setPracticeBtn').addEventListener('click', fromSettings(function () { A.loadPractice(); }));
+    $('setHelpBtn').addEventListener('click', fromSettings(function () { A.openHelp(); }));
+    $('setDiagBtn').addEventListener('click', fromSettings(function () { A.saveDiagnostics(); }));
     ['setTheme', 'setText'].forEach(function (id) {
       $(id).addEventListener('change', function () {
         S.settings.theme = $('setTheme').value;

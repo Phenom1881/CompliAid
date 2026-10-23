@@ -6,8 +6,8 @@
  * {
  *   format: 'field-ics-setup', version: 1,
  *   locality: { name, agency, applicant, state },
- *   options: { regularDay, backupHours, checkinsToLog },
- *   people: [{ name, position, jobTitle, department, personType, budgeted, regRate, otRate, fringeReg, fringeOt }],
+ *   options: { regularDay, backupHours, checkinsToLog, requireLock, minPasscode },
+ *   people: [{ name, position, jobTitle, department, personType, budgeted, regRate, otRate, fringeReg, fringeOt, phone, email }],
  *   equipment: [{ description, unitId, code, usageUnit, rate, rateSource, rateSchedule }],
  *   sites: ['...'], places: ['...'],
  *   rateSchedules: [{ id, title, effective, source, rows: [[code, equipment, manufacturer, spec, capacity, hp, notes, unit, rate]] }]
@@ -85,7 +85,9 @@
       regRate: num(p.regRate, 100000),
       otRate: num(p.otRate, 100000),
       fringeReg: num(p.fringeReg, 1000),
-      fringeOt: num(p.fringeOt, 1000)
+      fringeOt: num(p.fringeOt, 1000),
+      phone: txt(p.phone, 40),
+      email: txt(p.email, 120)
     };
   }
 
@@ -146,6 +148,7 @@
     var schedules = list(obj.rateSchedules, MAX.schedules).map(cleanSchedule);
     var regularDay = num(opt.regularDay, 24);
     var backupHours = num(opt.backupHours, 72);
+    var minPasscode = num(opt.minPasscode, 64);
     return {
       format: FORMAT,
       version: VERSION,
@@ -159,7 +162,10 @@
       options: {
         regularDay: regularDay && regularDay >= 1 ? regularDay : 8,
         backupHours: backupHours && backupHours >= 0.5 ? backupHours : 4,
-        checkinsToLog: opt.checkinsToLog !== false
+        checkinsToLog: opt.checkinsToLog !== false,
+        /* The office can require the device lock on every device that loads this setup. */
+        requireLock: opt.requireLock === true,
+        minPasscode: minPasscode && minPasscode >= 6 ? Math.round(minPasscode) : 6
       },
       people: people,
       equipment: equipment,
@@ -250,7 +256,9 @@
     regRate: ['regular rate', 'regular rate per hour', 'reg rate', 'hourly rate'],
     otRate: ['overtime rate', 'overtime rate per hour', 'ot rate'],
     fringeReg: ['fringe regular %', 'fringe regular', 'fringe benefits regular time %', 'fringe reg'],
-    fringeOt: ['fringe overtime %', 'fringe overtime', 'fringe benefits overtime %', 'fringe ot']
+    fringeOt: ['fringe overtime %', 'fringe overtime', 'fringe benefits overtime %', 'fringe ot'],
+    phone: ['phone', 'cell', 'cell phone', 'mobile', 'phone number', 'work phone'],
+    email: ['email', 'e mail', 'email address']
   };
 
   var EQUIPMENT_COLUMNS = {
@@ -298,9 +306,9 @@
   }
 
   function peopleTemplate(people) {
-    var lines = [csvLine(['Name', 'ICS position', 'Job title', 'Department', 'Type', 'Budgeted', 'Regular rate', 'Overtime rate', 'Fringe regular %', 'Fringe overtime %'])];
-    (people && people.length ? people : [{ name: 'Example Person', position: 'Planning Section Chief', jobTitle: 'Emergency Management Coordinator', department: 'Emergency Management', personType: 'Applicant employee', budgeted: 'Yes', regRate: 28.5, otRate: 42.75, fringeReg: 31.2, fringeOt: 7.65 }]).forEach(function (p) {
-      lines.push(csvLine([p.name, p.position, p.jobTitle, p.department, p.personType === 'Donated labor' ? 'Volunteer' : p.personType, p.budgeted, p.regRate, p.otRate, p.fringeReg, p.fringeOt]));
+    var lines = [csvLine(['Name', 'ICS position', 'Job title', 'Department', 'Type', 'Budgeted', 'Regular rate', 'Overtime rate', 'Fringe regular %', 'Fringe overtime %', 'Phone', 'Email'])];
+    (people && people.length ? people : [{ name: 'Example Person', position: 'Planning Section Chief', jobTitle: 'Emergency Management Coordinator', department: 'Emergency Management', personType: 'Applicant employee', budgeted: 'Yes', regRate: 28.5, otRate: 42.75, fringeReg: 31.2, fringeOt: 7.65, phone: '276-555-0100', email: 'example@county.gov' }]).forEach(function (p) {
+      lines.push(csvLine([p.name, p.position, p.jobTitle, p.department, p.personType === 'Donated labor' ? 'Volunteer' : p.personType, p.budgeted, p.regRate, p.otRate, p.fringeReg, p.fringeOt, p.phone || '', p.email || '']));
     });
     return lines.join('\r\n') + '\r\n';
   }

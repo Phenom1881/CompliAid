@@ -6,6 +6,7 @@
   var C = A.C;
   var COST_NAMES = A.COST_NAMES;
   var COST_TYPES = A.COST_TYPES;
+  var FORMS = A.FORMS;
   var MAX_IMPORT_BYTES = A.MAX_IMPORT_BYTES;
   var S = A.S;
   var btn = A.btn;
@@ -66,7 +67,7 @@
     share.appendChild(h('p', { text: 'Save a package file, move it any way you can (USB drive, email, text, AirDrop or Nearby Share, a shared folder), then import it on the other device. Everything merges: the log, every form, cost entries, and photos.' }));
     share.appendChild(h('p', { id: 'pendingNote', class: 'hint', text: pendingText(inc) }));
     share.appendChild(h('div', { class: 'row wrap' },
-      btn('Save package file', function () { openExport(); }, 'btn-primary', { id: 'exportBtn' }),
+      btn('Save package file', function () { A.openExport(); }, 'btn-primary', { id: 'exportBtn' }),
       btn('Import package file', function () { chooseImport(); }, '', { id: 'importBtn' })));
     share.appendChild(h('h3', { class: 'small-title', text: 'Phone to phone with no signal' }));
     share.appendChild(h('p', { class: 'hint', text: 'Show a moving QR code on this device and point the other device\'s camera at it. Sends the log and forms without photos. Works best for changes since the last transfer.' }));
@@ -85,8 +86,11 @@
       var ps = h('select', { id: 'iapPeriod', 'aria-label': 'Operational period for the IAP' });
       list.forEach(function (p) { ps.appendChild(h('option', { value: String(p.n), text: 'Period ' + periodLabel(p), selected: p.n === n })); });
       iapRow.appendChild(ps);
-      iapRow.appendChild(btn('IAP (202, 203, 204s, 205)', function () { printIAP(inc, +ps.value); }, 'btn-primary', { id: 'printIap' }));
+      iapRow.appendChild(btn('IAP (202 to 208)', function () { printIAP(inc, +ps.value); }, 'btn-primary', { id: 'printIap' }));
       iapRow.appendChild(btn('Check the IAP', function () { openIAPCheck(inc, +ps.value); }, 'btn-quiet', { id: 'checkIapShare' }));
+      iapRow.appendChild(btn('207 chart', function () { A.print207(inc, +ps.value); }, 'btn-quiet', { id: 'print207' }));
+      iapRow.appendChild(btn('215', function () { printPeriodForm(inc, '215', +ps.value); }, 'btn-quiet', { id: 'print215' }));
+      iapRow.appendChild(btn('215A', function () { printPeriodForm(inc, '215A', +ps.value); }, 'btn-quiet', { id: 'print215a' }));
     } else {
       iapRow.appendChild(h('span', { class: 'hint', text: 'Create an operational period to print an incident action plan.' }));
     }
@@ -94,13 +98,19 @@
     printCard.appendChild(h('div', { class: 'row wrap' },
       btn('ICS 214 activity log', function () { openLogPrint(); }),
       btn('ICS 201 briefing', function () { printOne(inc, '201'); }),
+      btn('ICS 209 status summaries', function () { printMany(inc, '209'); }, '', { id: 'print209' }),
       btn('ICS 211 check-in list', function () { printCheckins(inc, false); }),
       btn('All ICS 213 messages', function () { printMany(inc, '213'); }),
       btn('All ICS 213 RR requests', function () { printMany(inc, '213RR'); }),
+      btn('ICS 221 check-outs', function () { printMany(inc, '221'); }, '', { id: 'print221' }),
       btn('PA cost summary', function () { openCostPrint(); }),
       btn('Check cost documentation', function () { openCostCheck(inc); }, 'btn-quiet', { id: 'checkCostsShare' })));
+    printCard.appendChild(h('div', { class: 'row wrap' },
+      btn('Damage assessment summary', function () { A.printDamageSummary(inc); }, '', { id: 'printDamageShare' }),
+      btn('Volunteer sign-in sheet', function () { A.printVolunteerSheet(inc, false); }),
+      btn('Notes', function () { A.printNotes(inc); })));
     printCard.appendChild(h('h3', { class: 'small-title', text: 'Paper backup kit' }));
-    printCard.appendChild(h('p', { class: 'hint', text: 'Blank forms and sign-in sheets to keep in the EOC and vehicles for when devices are down: 201 to 214, plus daily labor, equipment, and materials logs.' }));
+    printCard.appendChild(h('p', { class: 'hint', text: 'Blank forms to keep in the EOC and vehicles for when devices are down: ICS 201 to 221, home damage assessment forms, volunteer and labor sign-in sheets, and equipment and materials logs.' }));
     printCard.appendChild(btn('Paper backup kit', function () { printPaperKit(); }, '', { id: 'paperKitBtn' }));
     root.appendChild(printCard);
 
@@ -109,6 +119,7 @@
     csv.appendChild(h('p', { class: 'hint', text: 'The Excel workbook has a summary sheet and one sheet per cost type. Rates and amounts can be filled in there, and every total updates.' }));
     csv.appendChild(h('div', { class: 'row wrap' },
       btn('PA cost workbook (Excel)', function () { downloadCostWorkbook(inc); }, '', { id: 'xlsxShare' }),
+      btn('Damage inventory (Excel)', function () { A.downloadInventoryXLSX(inc); }, '', { id: 'inventoryShare' }),
       btn('All cost entries (CSV)', function () { downloadAllCostsCSV(inc); }, 'btn-quiet', { id: 'allCostsCsvShare' }),
       btn('ICS 214 log (CSV)', function () { downloadLogCSV(); }, 'btn-quiet')));
     var csvRow = h('div', { class: 'row wrap tools' }, h('span', { class: 'hint', text: 'One cost type (CSV):' }));
@@ -123,7 +134,17 @@
       btn('Metrics report', function () { printMetrics(); }, '', { id: 'metricsBtn' }),
       btn('Metrics CSV', function () { downloadMetricsCSV(); }, 'btn-quiet')));
     root.appendChild(rep);
+    root.appendChild(A.closeOutCard(inc));
     return root;
+  }
+
+  function printPeriodForm(inc, type, n) {
+    var g = C.getRecord(inc, C.recordId(type, n));
+    if (!g || g.deleted) {
+      toast('No ' + FORMS[type].code + ' saved for period ' + n + ' yet.');
+      return;
+    }
+    A.runPrint([A.formNode(inc, g)], { title: FORMS[type].code + ', period ' + n });
   }
 
   function sizeText(bytes) {
@@ -274,9 +295,14 @@
   function mergeOne(pkg, name, lines) {
     var id = pkg.incident && typeof pkg.incident.id === 'string' ? pkg.incident.id : '';
     var target = id && S.incidents.has(id) ? S.incidents.get(id) : null;
-    var res = C.mergePackage(target, pkg);
-    if (target && target._period) res.incident._period = target._period;
-    S.incidents.set(res.incident.id, res.incident);
+    /* An incident already here is merged in place, so open screens keep working with it. */
+    var res;
+    if (target) {
+      res = { incident: target, report: C.mergeInto(target, pkg) };
+    } else {
+      res = C.mergePackage(null, pkg);
+      S.incidents.set(res.incident.id, res.incident);
+    }
     S.currentId = res.incident.id;
     S.settings.lastIncidentId = res.incident.id;
     persist(res.incident);
@@ -295,6 +321,7 @@
     var clash = r.conflicts.length + r.formsConflicts.length + r.imagesConflicts.length;
     if (clash) lines.push(plural(clash, 'item has', 'items have') + ' the same id as something on this device but different content. Your copy was kept. Check with whoever sent the file.');
     if (r.formsRejected) lines.push(plural(r.formsRejected, 'form version', 'form versions') + ' did not match the form already on this device and were skipped.');
+    if (r.formsSkipped) lines.push(plural(r.formsSkipped, 'form version is', 'form versions are') + ' for forms this version of FieldICS does not have, and were skipped. Update FieldICS on this device, then import the file again.');
     if (r.newConflicts.length) {
       var names = r.newConflicts.map(function (rid) { return recordTitle(C.getRecord(res.incident, rid)); });
       lines.push(plural(names.length, 'form now has', 'forms now have') + ' versions saved separately on different devices: ' + names.join('; ') + '. Use the yellow bar at the top to compare them.');
@@ -425,7 +452,8 @@
 
   A.pendingText = pendingText;
   A.shareView = shareView;
-  A.openExport = openExport;
+  /* A package file carries the photos, and an import compares them, so both wait for photos still loading. */
+  A.openExport = A.withPhotos(openExport);
   A.makeExport = makeExport;
   A.finishExport = finishExport;
   A.wireExport = wireExport;
@@ -433,7 +461,7 @@
   A.unlock = unlock;
   A.importText = importText;
   A.importOne = importOne;
-  A.importFiles = importFiles;
+  A.importFiles = A.withPhotos(importFiles);
   A.finishImport = finishImport;
   A.chooseImport = chooseImport;
   A.downloadLogCSV = downloadLogCSV;

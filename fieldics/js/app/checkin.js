@@ -130,7 +130,7 @@
         h('p', { class: 'hint', text: plural(here.length, 'resource', 'resources') + ' on the incident now' + (persons ? ', about ' + plural(persons, 'person', 'people') : '') + '. ' + plural(all.length, 'check-in', 'check-ins') + ' in all.' })),
       h('div', { class: 'row wrap' }, sel, deletedToggle())));
     var tools = h('div', { class: 'row wrap tools' });
-    tools.appendChild(btn('Check in', function () { startNew('211'); }, 'btn-primary', { id: 'new211' }));
+    if (!C.isClosed(inc)) tools.appendChild(btn('Check in', function () { startNew('211'); }, 'btn-primary', { id: 'new211' }));
     if (all.some(function (g) { return !g.deleted; })) tools.appendChild(btn('Print 211', function () { printCheckins(inc, false); }, 'btn-quiet', { id: 'print211' }));
     tools.appendChild(btn('Blank 211', function () { printCheckins(inc, true); }, 'btn-quiet'));
     card.appendChild(tools);
@@ -145,7 +145,7 @@
         'In ' + fmtDT(d.checkIn) + ' at ' + where(d) + (d.checkOut ? ' | Out ' + fmtDT(d.checkOut) + ' (' + hoursText(d) + ')' : ' | On the incident'),
         d.assignment ? 'Assignment: ' + d.assignment : ''
       ], g);
-      if (!g.deleted && onScene(d)) {
+      if (!g.deleted && onScene(d) && !C.isClosed(inc)) {
         li.appendChild(btn('Check out', function () { checkOut(g.rid); }, 'btn-small item-action', { 'aria-label': 'Check out ' + d.identifier }));
       }
       ul.appendChild(li);
@@ -328,10 +328,13 @@
 
   /* Extra buttons at the top of a form, by form type. Returns [[label, onclick]]. */
   function extraTools(inc, type, s) {
-    if (type === '211') return checkinTools(inc, s);
-    if (type === '213RR' && !s.isNew) return [['Record costs from this request', function () { requestCosts(inc, s); }]];
-    if (type === 'equipment') return rateTools(inc, s);
-    return [];
+    var list = [];
+    if (type === '211') list = checkinTools(inc, s);
+    if (type === '213RR' && !s.isNew) list = [['Record costs from this request', function () { requestCosts(inc, s); }]];
+    if (type === 'equipment') list = rateTools(inc, s);
+    /* Tools that later modules add for their forms (A.toolsFor). */
+    if (A.toolsFor[type]) list = list.concat(A.toolsFor[type](inc, s));
+    return list;
   }
 
   /* ---------- exports ---------- */

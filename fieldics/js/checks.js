@@ -37,7 +37,7 @@
   function emptyBlocks(type, data) {
     var out = [];
     FORMS[type].blocks.forEach(function (b, i) {
-      if (b.noPrint || b.prepared || b.signature) return;
+      if (b.noPrint || b.prepared || b.signature || b.geo) return;
       var filled = b.fields.some(function (f) { return !empty(data[f.k]); });
       if (!filled) out.push({ index: i, n: b.n || '', title: b.title, field: b.fields[0].k });
     });
@@ -70,12 +70,27 @@
       if (empty(d.sspRequired)) add('check', 'The 202 does not say whether a site safety plan is required (block 5).', { type: '202', rid: g202.rid, field: 'sspRequired' });
       if (empty(d.prepName)) add('check', 'The 202 has no Prepared by name (block 7).', { type: '202', rid: g202.rid, field: 'prepName' });
       if (empty(d.approvedName)) add('check', 'The 202 is not marked approved by the Incident Commander (block 8).', { type: '202', rid: g202.rid, field: 'approvedName' });
-      ['ICS 206', 'ICS 207', 'ICS 208', 'ICS 205A'].forEach(function (code) {
-        if ((d.iapItems || []).indexOf(code) !== -1) {
-          add('check', 'The 202 lists the ' + code + '. FieldICS does not make that form, so attach it on paper.', { type: '202', rid: g202.rid, field: 'iapItems' });
-        }
+      /* Support forms the 202 says are in the plan must exist for the period. */
+      [['ICS 205A', '205A'], ['ICS 206', '206'], ['ICS 208', '208']].forEach(function (x) {
+        if ((d.iapItems || []).indexOf(x[0]) === -1) return;
+        var g = live(inc, C.recordId(x[1], n));
+        if (!g) add('fix', 'The 202 lists the ' + x[0] + ', but there is none for this period.', { type: x[1] });
+        else if (g.conflict) add('fix', 'The ' + x[0].replace('ICS ', '') + ' has versions to compare.', { type: x[1], rid: g.rid });
       });
+      if ((d.iapItems || []).indexOf('ICS 207') !== -1 && !live(inc, C.recordId('203', n))) {
+        add('fix', 'The 202 lists the ICS 207 organization chart, which FieldICS draws from the 203. Fill in the 203 first.', { type: '203' });
+      }
     }
+
+    var g206 = live(inc, C.recordId('206', n));
+    if (g206) {
+      var d6 = g206.winner.data;
+      if (!(d6.hospitals || []).length) add('fix', 'The 206 lists no hospitals (block 5).', { type: '206', rid: g206.rid, field: 'hospitals' });
+      if (!(d6.transport || []).length) add('check', 'The 206 lists no ambulance service (block 4).', { type: '206', rid: g206.rid, field: 'transport' });
+      if (empty(d6.approvedName)) add('check', 'The 206 is not approved by the Safety Officer (block 8).', { type: '206', rid: g206.rid, field: 'approvedName' });
+    }
+    var g208 = live(inc, C.recordId('208', n));
+    if (g208 && empty(g208.winner.data.message)) add('fix', 'The 208 has no safety message (block 3).', { type: '208', rid: g208.rid, field: 'message' });
 
     var g203 = live(inc, C.recordId('203', n));
     if (!g203) {
@@ -153,8 +168,26 @@
       '{n} equipment {entries} {uses} a FEMA rate but {has} no FEMA equipment code: {names}.', 'equipment', 'code');
     group('check', function (x) { return x.type === 'equipment' && !x.data.operator && !x.cost.donated; },
       '{n} equipment {entries} {has} no operator: {names}. Operator time is claimed as labor.', 'equipment', 'operator');
+    var st = all.filter(function (x) { return x.cost.flagged; });
+    if (st.length) {
+      var stCents = st.reduce(function (n, x) { return n + x.cost.flaggedCents; }, 0);
+      out.push({
+        level: 'check', type: 'labor', rid: st[0].rec.rid, field: 'budgeted', count: st.length,
+        text: st.length + ' labor ' + (st.length === 1 ? 'entry has' : 'entries have') + ' straight time for budgeted employees on Category A or B work, $' +
+          (stCents / 100).toFixed(2) + ' in all: ' + listNames(st) + '. FEMA generally reimburses only overtime for budgeted employees on emergency work, so this straight time is shown separately. It stays documented.' +
+          (inc.altDebris ? '' : ' If the applicant elected the alternative procedures for debris removal, mark that under Details and Category A straight time is no longer flagged.')
+      });
+    }
     group('check', function (x) { return x.type === 'contracts' && !x.data.procurement; },
       '{n} contract{s} {has} no procurement method: {names}.', 'contracts', 'procurement');
+    group('fix', function (x) { return x.type === 'contracts' && x.data.contractType === 'Cost plus a percentage of cost'; },
+      '{n} contract{s} {uses} cost plus a percentage of cost, which is not allowed with federal funds (2 CFR 200.324(c)): {names}.', 'contracts', 'contractType');
+    group('check', function (x) { return x.type === 'contracts' && x.data.contractType === 'Time and materials' && (x.data.procChecks || []).indexOf('ceiling') === -1; },
+      '{n} time and materials contract{s} {does} not show a ceiling price and a finding that no other contract type fit (2 CFR 200.318(j)): {names}.', 'contracts', 'procChecks');
+    group('check', function (x) { return x.type === 'contracts' && /^Noncompetitive/.test(x.data.procurement || '') && empty(x.data.justification); },
+      '{n} noncompetitive contract{s} {has} no written reason: {names}. Keep the documentation of the exigency, emergency, or sole source (2 CFR 200.320(c)).', 'contracts', 'justification');
+    group('check', function (x) { return x.type === 'contracts' && (x.data.procChecks || []).indexOf('sam') === -1; },
+      '{n} contract{s} {does} not record a SAM.gov check that the contractor is not suspended or debarred: {names}.', 'contracts', 'procChecks');
     group('check', function (x) { return (x.type === 'materials' && x.data.obtained === 'Purchased' || x.type === 'rentals' || x.type === 'contracts' || x.type === 'travel') && !x.data.invoice && !x.data.receipt && !(x.data.photos || []).length; },
       '{n} purchase{s} {has} no invoice or receipt number and no photo of one: {names}.', null, 'invoice');
     group('check', function (x) { return x.cost.donated && x.type !== 'labor' && !x.data.donor; },

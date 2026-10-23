@@ -142,6 +142,7 @@
             <input type="text" id="incDisaster" maxlength="60" placeholder="DR-0000-VA">
           </div>
         </div>
+        <label class="check top field" for="incAltDebris"><input type="checkbox" id="incAltDebris"> The applicant elected the PA alternative procedures for debris removal. Straight time of budgeted employees on Category A work is then eligible, so FieldICS stops setting it apart.</label>
       </details>
       <p id="incError" class="error" role="alert" hidden></p>
       <div class="row space">
@@ -223,6 +224,10 @@
         <button type="button" id="setSetupBtn" class="btn btn-quiet">Locality setup <span id="setSetupState" class="count"></span></button>
         <button type="button" id="setLockBtn" class="btn btn-quiet">Device lock <span id="setLockState" class="count"></span></button>
         <button type="button" id="setClockBtn" class="btn btn-quiet">Clock check</button>
+        <button type="button" id="setSyncBtn" class="btn btn-quiet">Shared folder <span id="setSyncState" class="count"></span></button>
+        <button type="button" id="setPracticeBtn" class="btn btn-quiet">Practice incident</button>
+        <button type="button" id="setHelpBtn" class="btn btn-quiet">Quick start</button>
+        <button type="button" id="setDiagBtn" class="btn btn-quiet">Diagnostics file</button>
       </div>
       <p id="setInfo" class="hint"></p>
       <div class="row end">
@@ -386,6 +391,8 @@
   <script src="js/print.js"></script>
   <script src="js/xlsx.js"></script>
   <script src="js/costbook.js"></script>
+  <script src="js/assess.js"></script>
+  <script src="js/practice.js"></script>
   <script src="js/checks.js"></script>
   <script src="js/setup.js"></script>
   <script src="js/metrics.js"></script>
@@ -407,11 +414,17 @@
   <script src="js/app/printing.js"></script>
   <script src="js/app/checkin.js"></script>
   <script src="js/app/notes.js"></script>
+  <script src="js/app/planning.js"></script>
+  <script src="js/app/damage.js"></script>
+  <script src="js/app/volunteers.js"></script>
   <script src="js/app/locality.js"></script>
   <script src="js/app/readiness.js"></script>
   <script src="js/app/tools.js"></script>
   <script src="js/app/lock.js"></script>
   <script src="js/app/transfer.js"></script>
+  <script src="js/app/closeout.js"></script>
+  <script src="js/app/sync.js"></script>
+  <script src="js/app/help.js"></script>
   <script src="js/app/main.js"></script>
 </body>
 </html>

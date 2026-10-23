@@ -14,11 +14,12 @@
   var FORMS = F.FORMS;
   var COST_TYPES = F.COST_TYPES;
 
-  var APP_NAME = 'FieldICS 0.3';
+  var APP_NAME = 'FieldICS 0.4';
   var MON = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
   var MAX_IMPORT_BYTES = 300 * 1024 * 1024;
   var ID_PART = /^[A-Za-z0-9-]{2,80}$/;
-  var ROUTE_NAMES = ['log', 'notes', '201', '202', '203', '204', '205', '211', '213', '213rr', 'costs', 'share'];
+  var ROUTE_NAMES = ['log', 'notes', '201', '202', '203', '204', '205', '205a', '206', '208', '209', '211', '213', '213rr',
+    '215', '215a', '221', 'volunteers', 'damage', 'costs', 'share'];
 
   /* Navigation, grouped the way ICS sections work. code is the form number shown beside the name. */
   var NAV = [
@@ -28,13 +29,26 @@
     { r: '202', group: 'Planning', code: '202', label: 'Objectives', types: ['202'] },
     { r: '203', group: 'Planning', code: '203', label: 'Organization', types: ['203'] },
     { r: '204', group: 'Planning', code: '204', label: 'Assignments', types: ['204'] },
-    { r: '205', group: 'Planning', code: '205', label: 'Radio plan', types: ['205'] },
+    { r: '215', group: 'Planning', code: '215', label: 'Planning worksheet', types: ['215'] },
+    { r: '215a', group: 'Planning', code: '215A', label: 'Safety analysis', types: ['215A'] },
+    { r: '205', group: 'Plan support', code: '205', label: 'Radio plan', types: ['205'] },
+    { r: '205a', group: 'Plan support', code: '205A', label: 'Contact list', types: ['205A'] },
+    { r: '206', group: 'Plan support', code: '206', label: 'Medical plan', types: ['206'] },
+    { r: '208', group: 'Plan support', code: '208', label: 'Safety message', types: ['208'] },
     { r: '211', group: 'Resources', code: '211', label: 'Check-in', types: ['211'] },
     { r: '213rr', group: 'Resources', code: '213RR', label: 'Resource requests', types: ['213RR'] },
+    { r: 'volunteers', group: 'Resources', code: '', label: 'Volunteers', types: ['volunteer'] },
+    { r: '221', group: 'Resources', code: '221', label: 'Demob check-out', types: ['221'] },
+    { r: '209', group: 'Situation', code: '209', label: 'Status summary', types: ['209'] },
+    { r: 'damage', group: 'Situation', code: 'DA', label: 'Damage assessment', types: ['daHome', 'daSite'] },
     { r: '213', group: 'Communications', code: '213', label: 'Messages', types: ['213'] },
     { r: 'costs', group: 'Finance', code: 'PA', label: 'Costs', types: COST_TYPES },
     { r: 'share', group: 'Output', code: '', label: 'Share and print', types: [] }
   ];
+
+  /* Screens and form tools that later modules add. views[route](inc, route) returns an element; toolsFor[type](inc, session) returns [[label, onclick]]. */
+  var views = {};
+  var toolsFor = {};
 
   var COST_NAMES = { labor: 'Labor', equipment: 'Equipment', materials: 'Materials', rentals: 'Rentals', contracts: 'Contracts', travel: 'Travel and other' };
   var COST_ADD = {
@@ -281,6 +295,8 @@
   A.ID_PART = ID_PART;
   A.ROUTE_NAMES = ROUTE_NAMES;
   A.NAV = NAV;
+  A.views = views;
+  A.toolsFor = toolsFor;
   A.COST_NAMES = COST_NAMES;
   A.COST_ADD = COST_ADD;
   A.$ = $;

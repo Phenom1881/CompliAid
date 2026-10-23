@@ -79,7 +79,8 @@
         plural(next.people.length, 'person', 'people') + ', ' + plural(next.equipment.length, 'piece of equipment', 'pieces of equipment') + ', ' +
           plural(next.sites.length, 'site', 'sites') + ', ' + plural(next.rateSchedules.length, 'local rate schedule', 'local rate schedules') + '.',
         'Names, job titles, and rates now fill in on labor and equipment entries.'
-      ]);
+      ].concat(next.options.requireLock ? ['This setup requires the device lock, with a passcode of at least ' + next.options.minPasscode + ' characters.' +
+        (S.lock.record ? ' The lock on this device is on.' : ' Use Turn on device lock at the top of the screen.')] : []));
       return next;
     });
   }
@@ -127,6 +128,11 @@
       field('suBackup', 'Remind to save a package file after (hours)', s.options.backupHours, { numeric: true, max: 5 })));
     var logBox = h('input', { type: 'checkbox', id: 'suLog', checked: s.options.checkinsToLog !== false });
     form.appendChild(h('label', { class: 'check', for: 'suLog' }, logBox, ' Add ICS 211 check-ins and check-outs to the activity log'));
+    /* Device lock policy: every device that loads this setup is asked to turn the lock on. */
+    var lockBox = h('input', { type: 'checkbox', id: 'suRequireLock', checked: s.options.requireLock === true });
+    form.appendChild(h('label', { class: 'check', for: 'suRequireLock' }, lockBox, ' Require the device lock on every device that loads this setup'));
+    form.appendChild(h('div', { class: 'grid two' },
+      field('suMinPass', 'Shortest passcode allowed (characters, 6 or more)', s.options.minPasscode || 6, { numeric: true, max: 2 })));
     form.appendChild(h('div', { class: 'row end' }, h('button', { type: 'submit', class: 'btn btn-primary', id: 'suSave', text: 'Save setup' })));
     form.addEventListener('submit', function (e) {
       e.preventDefault();
@@ -134,7 +140,14 @@
       next.format = Setup.FORMAT;
       next.version = Setup.VERSION;
       next.locality = { name: $('suName').value, agency: $('suAgency').value, applicant: $('suApplicant').value, state: $('suState').value };
-      next.options = { regularDay: $('suRegular').value, backupHours: $('suBackup').value, checkinsToLog: logBox.checked };
+      var minPass = Number($('suMinPass').value);
+      if (!(minPass >= 6 && minPass <= 64)) {
+        toast('The shortest passcode must be 6 to 64 characters.');
+        $('suMinPass').focus();
+        return;
+      }
+      next.options = { regularDay: $('suRegular').value, backupHours: $('suBackup').value, checkinsToLog: logBox.checked,
+        requireLock: lockBox.checked, minPasscode: minPass };
       try {
         next = Setup.parseSetup(next);
       } catch (err) {
@@ -142,7 +155,8 @@
         return;
       }
       saveSetup(next).then(function () {
-        toast('Setup saved.');
+        render();
+        toast(next.options.requireLock && !S.lock.record ? 'Setup saved. It requires the device lock, so turn the lock on for this device.' : 'Setup saved.');
         openSetup();
       });
     });
@@ -150,7 +164,9 @@
 
     var lists = h('section', { class: 'subcard' });
     lists.appendChild(h('h3', { class: 'small-title', text: 'Lists' }));
-    lists.appendChild(h('p', { class: 'hint', text: plural(s.people.length, 'person', 'people') + ', ' + plural(s.equipment.length, 'piece of equipment', 'pieces of equipment') + ', ' +
+    var reachable = s.people.filter(function (p) { return p.phone || p.email; }).length;
+    lists.appendChild(h('p', { class: 'hint', text: plural(s.people.length, 'person', 'people') + (s.people.length ? ' (' + reachable + ' with a phone or email for the ICS 205A)' : '') + ', ' +
+      plural(s.equipment.length, 'piece of equipment', 'pieces of equipment') + ', ' +
       plural(s.sites.length, 'site', 'sites') + ', ' + plural(s.places.length, 'check-in place', 'check-in places') + '. Lists load from spreadsheets saved as CSV. Download a template, fill it in, and load it back.' }));
     lists.appendChild(h('div', { class: 'row wrap' },
       btn('Load people (CSV)', function () { importList('people'); }, '', { id: 'suPeopleCsv' }),

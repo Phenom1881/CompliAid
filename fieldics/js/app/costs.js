@@ -100,13 +100,13 @@
       h('div', null, h('h2', { text: FORMS[type].title }), h('p', { class: 'hint', text: 'Newest first. Tap an entry to edit it.' })),
       deletedToggle()));
     card.appendChild(h('div', { class: 'row wrap tools' },
-      btn(COST_ADD[type], function () { startNew(type); }, 'btn-primary', { id: 'addCost' }),
+      C.isClosed(inc) ? null : btn(COST_ADD[type], function () { startNew(type); }, 'btn-primary', { id: 'addCost' }),
       btn('CSV', function () { downloadCostCSV(inc, type); }, 'btn-quiet')));
     card.appendChild(costFilterBar(inc, render));
     var items = C.costRecords(inc, { type: type, category: S.costFilter.category, site: S.costFilter.site });
     if (S.showDeleted) {
       C.listRecords(inc, type, null, true).forEach(function (g) {
-        if (g.deleted) items.push({ rec: g, type: type, data: g.winner.data, cost: C.costOf(type, g.winner.data), date: C.costDate(type, g.winner.data) });
+        if (g.deleted) items.push({ rec: g, type: type, data: g.winner.data, cost: C.costOf(type, g.winner.data, C.costOpts(inc)), date: C.costDate(type, g.winner.data) });
       });
     }
     items.reverse();
@@ -122,6 +122,9 @@
       if (x.cost.donated) {
         li.firstChild.classList.add('donated');
         li.firstChild.firstChild.appendChild(h('span', { class: 'tag', text: 'Donated' }));
+      }
+      if (x.cost.flagged) {
+        li.firstChild.firstChild.appendChild(h('span', { class: 'tag tag-flag', text: 'Budgeted straight time', title: 'Straight time of a budgeted employee on emergency work: generally not eligible. Overtime is.' }));
       }
       ul.appendChild(li);
     });
@@ -152,6 +155,14 @@
     tb.appendChild(h('tr', { class: 'total' }, h('td', { text: 'Total' }), h('td'), h('td'), h('td', { class: 'num', text: fmtMoney(s.total) })));
     table.appendChild(tb);
     card.appendChild(h('div', { class: 'table-wrap' }, table));
+    if (s.budgetedST.count) {
+      card.appendChild(h('div', { class: 'flag-box', id: 'budgetedSummary' },
+        h('h3', { class: 'small-title', text: 'Budgeted employees\' straight time on emergency work' }),
+        h('p', { text: fmtMoney(s.budgetedST.total) + ' of the total (' + plural(s.budgetedST.count, 'entry', 'entries') + ', ' + s.budgetedST.hours +
+          ' regular hours) is straight time for budgeted employees on Category ' + (inc.altDebris ? 'B' : 'A or B') + ' work. Without it, the total is ' + fmtMoney(s.totalLessBudgetedST) + '.' }),
+        h('p', { class: 'hint', text: 'FEMA generally reimburses only overtime for budgeted employees on emergency work. Straight time is eligible for unbudgeted employees and on permanent work (C to G). It stays documented here and prints marked with an asterisk.' +
+          (inc.altDebris ? ' This incident uses the alternative procedures for debris removal, so Category A straight time is not set apart.' : ' If the applicant elected the alternative procedures for debris removal, mark that under incident Details.') })));
+    }
     if (s.donated.count) {
       card.appendChild(h('div', { class: 'donated-box', id: 'donatedSummary' },
         h('h3', { class: 'small-title', text: 'Donated resources (not in the total above)' }),

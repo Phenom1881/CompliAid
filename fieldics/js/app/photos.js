@@ -5,6 +5,7 @@
   var $ = A.$;
   var C = A.C;
   var FORMS = A.FORMS;
+  var S = A.S;
   var btn = A.btn;
   var cur = A.cur;
   var fmtDT = A.fmtDT;
@@ -18,6 +19,7 @@
   var whoName = A.whoName;
 
   var PHOTO_SIZE = { max: 1400, quality: 0.72 };
+  var BLANK = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
   /* Asks for one or more photos, shrinks them, and stores them on the incident. Resolves to new attachment ids. */
   function pickPhotos(limit) {
@@ -58,6 +60,47 @@
     body.appendChild(h('p', { class: 'hint', text: 'Added ' + fmtDT(att.at) + (att.by ? ' by ' + att.by : '') + (att.name ? '. File: ' + att.name : '') + '.' }));
   }
 
+  /* Opens a photo by id, looked up when tapped, since photos may still be loading when the page is drawn. */
+  function viewPhotoById(id, caption) {
+    var att = C.getAttachment(cur(), id);
+    if (att) viewPhoto(att, caption);
+    else toast(S.photosLoading ? 'This photo is still loading.' : 'This photo is not on this device yet. It arrives with a package file that has photos.');
+  }
+
+  /*
+   * An img for a stored photo. While photos are still loading after the app opens, it is
+   * a placeholder that fills in when the photo arrives. null when the photo is not here.
+   */
+  function photoImg(inc, id, attrs) {
+    var att = inc ? C.getAttachment(inc, id) : null;
+    var a = {};
+    Object.keys(attrs || {}).forEach(function (k) { a[k] = attrs[k]; });
+    if (att) {
+      a.src = att.data;
+      return h('img', a);
+    }
+    if (!S.photosLoading) return null;
+    a.src = BLANK;
+    a['data-att'] = id;
+    a.class = ((a.class || '') + ' is-loading').trim();
+    return h('img', a);
+  }
+
+  /* Fills placeholders as photos arrive. final: loading is done, so any still missing are not on this device. */
+  function fillPhotos(final) {
+    var inc = cur();
+    Array.prototype.forEach.call(document.querySelectorAll('img[data-att]'), function (img) {
+      var att = inc ? C.getAttachment(inc, img.getAttribute('data-att')) : null;
+      if (att) {
+        img.src = att.data;
+        img.removeAttribute('data-att');
+        img.classList.remove('is-loading');
+      } else if (final && img.parentNode) {
+        img.parentNode.replaceChild(h('span', { class: 'photo-gone', text: 'Not on this device yet' }), img);
+      }
+    });
+  }
+
   /*
    * A row of photo thumbnails with Add and Remove. ids: current attachment ids.
    * opts: { max, label, onChange(newIds), id }
@@ -70,13 +113,13 @@
       var inc = cur();
       var row = h('div', { class: 'photo-row' });
       list.forEach(function (id, i) {
-        var att = C.getAttachment(inc, id);
+        var img = photoImg(inc, id, { alt: '' });
         var cell = h('div', { class: 'photo-cell' });
-        if (att) {
+        if (img) {
           cell.appendChild(h('button', {
             type: 'button', class: 'photo-thumb', 'aria-label': 'View photo ' + (i + 1),
-            onclick: function () { viewPhoto(att, (opts.label || 'Photo') + ' ' + (i + 1)); }
-          }, h('img', { src: att.data, alt: '' })));
+            onclick: function () { viewPhotoById(id, (opts.label || 'Photo') + ' ' + (i + 1)); }
+          }, img));
         } else {
           cell.appendChild(h('div', { class: 'photo-thumb missing', text: 'Not on this device yet' }));
         }
@@ -113,12 +156,12 @@
     if (!e.photos || !e.photos.length) return null;
     var row = h('div', { class: 'photo-row small' });
     e.photos.forEach(function (id, i) {
-      var att = C.getAttachment(inc, id);
-      if (att) {
+      var img = photoImg(inc, id, { alt: '' });
+      if (img) {
         row.appendChild(h('button', {
           type: 'button', class: 'photo-thumb', 'aria-label': 'View photo ' + (i + 1),
-          onclick: function () { viewPhoto(att, 'Log entry photo ' + (i + 1)); }
-        }, h('img', { src: att.data, alt: '' })));
+          onclick: function () { viewPhotoById(id, 'Log entry photo ' + (i + 1)); }
+        }, img));
       } else {
         row.appendChild(h('div', { class: 'photo-thumb missing', text: 'Not here yet' }));
       }
@@ -149,6 +192,11 @@
         items.push({ id: id, caption: 'ICS 214 entry, ' + fmtDT(e.ts) + ', ' + e.author + ': ' + (e.text.length > 90 ? e.text.slice(0, 90) + '...' : e.text) });
       });
     });
+    (which.notes || []).forEach(function (g) {
+      (g.winner.data.photos || []).forEach(function (id) {
+        items.push({ id: id, caption: 'Note, ' + fmtDT(g.created) + ': ' + itemTitle('note', g.winner.data) });
+      });
+    });
     return items;
   }
 
@@ -156,6 +204,9 @@
 
   A.pickPhotos = pickPhotos;
   A.viewPhoto = viewPhoto;
+  A.viewPhotoById = viewPhotoById;
+  A.photoImg = photoImg;
+  A.fillPhotos = fillPhotos;
   A.photoStrip = photoStrip;
   A.entryPhotos = entryPhotos;
   A.appendixItems = appendixItems;

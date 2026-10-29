@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>REACT – CompliAid</title>
+  <title>REACT: FEMA PA Compliance Assistant | CompliAid</title>
+  <meta name="description" content="Ask questions about FEMA Public Assistance policy in plain language and get answers grounded in FEMA policy documents." />
+  <link rel="canonical" href="https://compliaid.com/react.html" />
+  <meta name="theme-color" content="#f7f6f2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CompliAid" />
+  <meta property="og:title" content="REACT: FEMA PA Compliance Assistant | CompliAid" />
+  <meta property="og:description" content="Ask questions about FEMA Public Assistance policy in plain language and get answers grounded in FEMA policy documents." />
+  <meta property="og:url" content="https://compliaid.com/react.html" />
+  <meta property="og:image" content="https://compliaid.com/assets/social-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -234,34 +247,52 @@
       .react-header, .chat-wrap, footer { padding-left: 20px; padding-right: 20px; }
     }
 
-    /* Phone menu: tighter spacing; REACT stays in the menu, so the extra button is hidden. */
     @media (max-width: 680px) {
       nav { padding-left: 16px; padding-right: 16px; }
-      .nav-links { gap: 14px; }
-      .nav-links a { font-size: 0.8rem; white-space: nowrap; }
+    }
+  
+    /* Shared navigation: the current page is marked, and the phone menu drops the extra button. */
+    .nav-logo img { display: block; height: 36px; width: auto; }
+    .nav-logo .logo-mark { display: none; }
+    .nav-links a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+    @media (max-width: 680px) {
+      .nav-logo .logo-full { display: none; }
+      .nav-logo .logo-mark { display: block; height: 30px; }
+      .nav-links { gap: 12px; }
+      .nav-links a { font-size: 0.78rem; white-space: nowrap; }
       .nav-links li:has(.nav-cta) { display: none; }
+    }
+    @media (max-width: 360px) {
+      .nav-logo .logo-mark { height: 26px; }
+      .nav-links a { font-size: 0.74rem; }
+      .nav-links { gap: 9px; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html" class="nav-logo">
-      <img src="CompliAid.png" alt="CompliAid" style="height: 32px; width: auto;" />
+  <nav aria-label="Main">
+    <a href="index.html" class="nav-logo" aria-label="CompliAid home">
+      <img class="logo-full" src="assets/compliaid-logo.png" alt="CompliAid" width="139" height="36" />
+      <img class="logo-mark" src="assets/icon-192.png" alt="CompliAid" width="28" height="28" />
     </a>
     <ul class="nav-links">
-      <li><a href="react.html" class="active">REACT</a></li>
+      <li><a href="react.html" aria-current="page">REACT</a></li>
       <li><a href="fieldics/">FieldICS</a></li>
-      <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
-      <li><a href="index.html">← Home</a></li>
+      <li><a href="checklist.html">Checklist</a></li>
+      <li><a href="https://disasterdata.io" target="_blank" rel="noopener">DisasterData.IO</a></li>
     </ul>
   </nav>
 
-  <div class="page">
+  <main class="page" id="main">
     <div class="react-header">
-      <span class="react-tag">REACT – Compliance Assistant</span>
+      <span class="react-tag">REACT Compliance Assistant</span>
       <h1>Ask anything about<br /><em>FEMA Public Assistance.</em></h1>
-      <p>REACT is an AI-powered compliance tool built to help emergency managers and subrecipients navigate FEMA PA policy. Ask questions, explore requirements, and get grounded answers — fast.</p>
+      <p>REACT is an AI-powered compliance tool built to help emergency managers and subrecipients navigate FEMA PA policy. Ask questions, explore requirements, and get answers grounded in policy, fast.</p>
     </div>
 
     <div class="chat-wrap">
@@ -276,18 +307,18 @@
           <iframe
             src="https://cdn.botpress.cloud/webchat/v3.6/shareable.html?configUrl=https://files.bpcontent.cloud/2026/05/17/23/20260517234103-MD8280T5.json"
             allow="microphone"
-            title="REACT – FEMA PA Compliance Assistant"
+            title="REACT, the FEMA PA compliance assistant"
           ></iframe>
         </div>
       </div>
-      <p class="disclaimer">⚠️ REACT is intended as a guidance tool and does not constitute legal, financial, or official FEMA advice. Always verify with your FEMA program delivery manager or state recipient.</p>
+      <p class="disclaimer">REACT is intended as a guidance tool and does not constitute legal, financial, or official FEMA advice. Always verify with your FEMA program delivery manager or state recipient.</p>
     </div>
 
     <footer>
       <span>© 2026 CompliAid</span>
       <a href="index.html">← Back to Home</a>
     </footer>
-  </div>
+  </main>
 
 </body>
 </html>

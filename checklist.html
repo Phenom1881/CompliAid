@@ -3,7 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PA Documentation Checklist — CompliAid</title>
+<title>PA Documentation Checklist | CompliAid</title>
+  <meta name="description" content="Track required and submitted documents for a FEMA Public Assistance project, by category of work. Free, and it runs in your browser." />
+  <link rel="canonical" href="https://compliaid.com/checklist.html" />
+  <meta name="theme-color" content="#f7f6f2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CompliAid" />
+  <meta property="og:title" content="PA Documentation Checklist | CompliAid" />
+  <meta property="og:description" content="Track required and submitted documents for a FEMA Public Assistance project, by category of work. Free, and it runs in your browser." />
+  <meta property="og:url" content="https://compliaid.com/checklist.html" />
+  <meta property="og:image" content="https://compliaid.com/assets/social-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
 <style>
@@ -13,7 +26,7 @@
     --bg: #f7f6f2;
     --ink: #1a1a1a;
     --ink-muted: #4A4A4A;
-    --ink-dim: #9a9a8a;
+    --ink-dim: #6b6b5e;
     --accent: #004c53;
     --accent-light: #d6ecee;
     --accent-glow: rgba(0,76,83,0.08);
@@ -153,6 +166,7 @@
 
   .page-header-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: 10px;
     align-items: center;
     flex-shrink: 0;
@@ -354,6 +368,14 @@
   }
 
   .cat-nav-item {
+    font: inherit;
+    text-align: left;
+    width: 100%;
+    background: none;
+    border-top: none;
+    border-right: none;
+    border-bottom: none;
+    cursor: pointer;
     display: flex;
     align-items: center;
     gap: 10px;
@@ -703,7 +725,7 @@
       overflow-x: auto;
       gap: 0;
     }
-    .cat-nav-item { flex-shrink: 0; border-left: none; border-bottom: 2px solid transparent; }
+    .cat-nav-item { flex-shrink: 0; width: auto; max-width: 240px; border-left: none; border-bottom: 2px solid transparent; }
     .cat-nav-item.active { border-bottom-color: var(--accent); border-left: none; }
     .sidebar-label { display: none; }
     .checklist-body { padding: 0 16px; }
@@ -712,46 +734,63 @@
     .page-footer { padding: 24px 20px; }
   }
 
-    /* Phone menu: tighter spacing; REACT stays in the menu, so the extra button is hidden. */
     @media (max-width: 680px) {
       nav { padding-left: 16px; padding-right: 16px; }
-      .nav-links { gap: 14px; }
-      .nav-links a { font-size: 0.8rem; white-space: nowrap; }
+    }
+    /* Shared navigation: the current page is marked, and the phone menu drops the extra button. */
+    .nav-logo img { display: block; height: 36px; width: auto; }
+    .nav-logo .logo-mark { display: none; }
+    .nav-links a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+    @media (max-width: 680px) {
+      .nav-logo .logo-full { display: none; }
+      .nav-logo .logo-mark { display: block; height: 30px; }
+      .nav-links { gap: 12px; }
+      .nav-links a { font-size: 0.78rem; white-space: nowrap; }
       .nav-links li:has(.nav-cta) { display: none; }
+    }
+    @media (max-width: 360px) {
+      .nav-logo .logo-mark { height: 26px; }
+      .nav-links a { font-size: 0.74rem; }
+      .nav-links { gap: 9px; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
 </style>
 </head>
 <body>
 
 <!-- NAV -->
-<nav>
-  <a href="index.html" class="nav-logo">
-    <img src="CompliAid.png" alt="CompliAid" style="height:30px;width:auto;" />
-  </a>
-  <ul class="nav-links">
-    <li><a href="react.html">REACT</a></li>
-    <li><a href="fieldics/">FieldICS</a></li>
-    <li><a href="checklist.html" style="color:var(--accent);font-weight:600;">Checklist</a></li>
-    <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
-    <li><a href="react.html" class="nav-cta">Try REACT</a></li>
-  </ul>
-</nav>
+<nav aria-label="Main">
+    <a href="index.html" class="nav-logo" aria-label="CompliAid home">
+      <img class="logo-full" src="assets/compliaid-logo.png" alt="CompliAid" width="139" height="36" />
+      <img class="logo-mark" src="assets/icon-192.png" alt="CompliAid" width="28" height="28" />
+    </a>
+    <ul class="nav-links">
+      <li><a href="react.html">REACT</a></li>
+      <li><a href="fieldics/">FieldICS</a></li>
+      <li><a href="checklist.html" aria-current="page">Checklist</a></li>
+      <li><a href="https://disasterdata.io" target="_blank" rel="noopener">DisasterData.IO</a></li>
+      <li><a href="react.html" class="nav-cta">Try REACT</a></li>
+    </ul>
+  </nav>
 
+<main id="main">
 <!-- PAGE HEADER -->
 <div class="page-header">
   <div class="page-header-left">
     <span class="page-tag">PA Documentation Tool</span>
     <h1>Project Worksheet<br /><em>Documentation Checklist</em></h1>
-    <p>Track required and submitted documents across all FEMA PA Categories for an active project worksheet.</p>
+    <p>Track required and submitted documents across all FEMA PA Categories for an active project worksheet. Your progress is saved in this browser only; nothing is sent anywhere.</p>
   </div>
   <div class="page-header-actions">
-    <button class="btn-secondary" onclick="resetAll()">↺ Reset</button>
-    <button class="btn-secondary" onclick="markAllRequired()">Mark All Required</button>
+    <button type="button" class="btn-secondary" onclick="resetAll()">↺ Reset</button>
     <div class="export-wrapper" id="exportMenu">
-      <button class="btn-primary" onclick="toggleExportMenu()">Export ↓</button>
-      <div class="export-dropdown" id="exportDropdown">
-        <button onclick="printCurrentCat()">Print Current Category</button>
-        <button onclick="printAll()">Print All Categories</button>
+      <button type="button" class="btn-primary" id="exportBtn" aria-haspopup="true" aria-expanded="false" aria-controls="exportDropdown" onclick="toggleExportMenu()">Print ↓</button>
+      <div class="export-dropdown" id="exportDropdown" hidden>
+        <button type="button" onclick="printCurrentCat()">Print current category</button>
+        <button type="button" onclick="printAll()">Print all categories</button>
       </div>
     </div>
   </div>
@@ -762,23 +801,23 @@
   <div class="meta-label-row">Project Details</div>
   <div class="meta-row">
     <div class="meta-field">
-      <label>Applicant / Subrecipient</label>
+      <label for="applicant">Applicant / Subrecipient</label>
       <input class="meta-input" type="text" id="applicant" placeholder="e.g. City of Roanoke" />
     </div>
     <div class="meta-field">
-      <label>Project Worksheet #</label>
+      <label for="pw">Project Worksheet #</label>
       <input class="meta-input" type="text" id="pw" placeholder="e.g. PW-0042" />
     </div>
     <div class="meta-field">
-      <label>Disaster Declaration #</label>
+      <label for="dr">Disaster Declaration #</label>
       <input class="meta-input" type="text" id="dr" placeholder="e.g. DR-4812-VA" />
     </div>
     <div class="meta-field">
-      <label>Date</label>
+      <label for="date">Date</label>
       <input class="meta-input" type="date" id="date" />
     </div>
     <div class="meta-field">
-      <label>Prepared By</label>
+      <label for="preparer">Prepared By</label>
       <input class="meta-input" type="text" id="preparer" placeholder="e.g. J. Moore" />
     </div>
   </div>
@@ -806,7 +845,7 @@
 <div class="layout">
 
   <!-- SIDEBAR -->
-  <div class="sidebar" id="sidebar">
+  <div class="sidebar" id="sidebar" role="navigation" aria-label="Categories of work">
     <div class="sidebar-label">Categories</div>
   </div>
 
@@ -814,6 +853,7 @@
   <div class="main" id="catContent"></div>
 
 </div>
+</main>
 
 <!-- FOOTER -->
 <footer class="page-footer">
@@ -862,7 +902,7 @@ const CATS = [
       },
       {
         id: 'labor-b', title: 'Labor Documentation',
-        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates','Volunteer Documentation (IS Rate)']
+        items: ['Force Account Labor Summary','Employee Time Records','Fringe Benefit Rates','Volunteer Hours and Valuation (Donated Resources)']
       },
       {
         id: 'equipment-b', title: 'Equipment Documentation',
@@ -1011,12 +1051,12 @@ const CATS = [
   },
   {
     id: 'cat-z', letter: 'Z', color: '#4A4A4A',
-    title: 'Direct Administrative Costs',
-    desc: 'Documentation for costs directly tied to administering a specific project.',
+    title: 'Management Costs',
+    desc: 'Documentation for management costs claimed under Category Z. Direct administrative costs for a specific project are claimed on that project instead.',
     sections: [
       {
         id: 'labor-z', title: 'Staff Labor',
-        items: ['Force Account Labor Summary','Employee Time Records (per project)','Fringe Benefit Rates','Job Description / Role Documentation']
+        items: ['Force Account Labor Summary','Employee Time Records (by activity)','Fringe Benefit Rates','Job Description / Role Documentation']
       },
       {
         id: 'fa-mat', title: 'Materials / Supplies',
@@ -1031,6 +1071,27 @@ const CATS = [
 ];
 
 let state = {};
+const STORE = 'compliaid-checklist';
+const META_IDS = ['applicant', 'pw', 'dr', 'date', 'preparer'];
+
+/* Saves the checklist in this browser so a refresh or a closed tab does not lose it. */
+function saveAll() {
+  try {
+    const meta = {};
+    META_IDS.forEach(id => { meta[id] = document.getElementById(id).value; });
+    localStorage.setItem(STORE, JSON.stringify({ state, meta }));
+  } catch (e) { /* storage blocked: the page still works, it just does not remember */ }
+}
+
+function loadAll() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(STORE) || 'null');
+    if (!saved) return false;
+    if (saved.state && typeof saved.state === 'object') state = saved.state;
+    if (saved.meta) META_IDS.forEach(id => { if (typeof saved.meta[id] === 'string') document.getElementById(id).value = saved.meta[id]; });
+    return true;
+  } catch (e) { return false; }
+}
 
 function getItemKey(catId, sectionId, itemIdx) {
   return `${catId}__${sectionId}__${itemIdx}`;
@@ -1049,11 +1110,13 @@ function renderItemState(key) {
   const s = getItemState(key);
   rBtn.classList.toggle('r-active', s === 'required');
   sBtn.classList.toggle('s-active', s === 'submitted');
+  rBtn.setAttribute('aria-pressed', String(s === 'required'));
+  sBtn.setAttribute('aria-pressed', String(s === 'submitted'));
   row.classList.toggle('submitted', s === 'submitted');
   if (pill) {
     if (s === 'required') { pill.className = 'status-pill required'; pill.textContent = 'REQ'; }
     else if (s === 'submitted') { pill.className = 'status-pill submitted'; pill.textContent = 'SUB'; }
-    else { pill.className = 'status-pill na'; pill.textContent = '—'; }
+    else { pill.className = 'status-pill na'; pill.textContent = 'Not set'; }
   }
 }
 
@@ -1096,6 +1159,7 @@ function updateProgress() {
   document.getElementById('totalRequired').textContent = totalReq + totalSub;
   document.getElementById('totalSubmitted').textContent = totalSub;
   document.getElementById('totalOutstanding').textContent = totalReq;
+  saveAll();
 }
 
 function cycleToRequired(key) {
@@ -1117,7 +1181,7 @@ function resetAll() {
   state = {};
   document.querySelectorAll('.toggle-btn').forEach(b => b.classList.remove('r-active','s-active'));
   document.querySelectorAll('.check-item').forEach(r => r.classList.remove('submitted'));
-  document.querySelectorAll('.status-pill').forEach(p => { p.className = 'status-pill na'; p.textContent = '—'; });
+  document.querySelectorAll('.status-pill').forEach(p => { p.className = 'status-pill na'; p.textContent = 'Not set'; });
   updateProgress();
 }
 
@@ -1140,30 +1204,41 @@ function markAllRequired() {
 
 function switchCat(catId) {
   document.querySelectorAll('.cat-section').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.cat-nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.cat-nav-item').forEach(el => { el.classList.remove('active'); el.removeAttribute('aria-current'); });
   document.getElementById('cat_' + catId).classList.add('active');
-  document.getElementById('nav_' + catId).classList.add('active');
+  const nav = document.getElementById('nav_' + catId);
+  nav.classList.add('active');
+  nav.setAttribute('aria-current', 'true');
+  try { localStorage.setItem(STORE + ':cat', catId); } catch (e) { /* optional */ }
+}
+
+function setExportMenu(open) {
+  const d = document.getElementById('exportDropdown');
+  d.hidden = !open;
+  d.style.display = open ? 'block' : 'none';
+  document.getElementById('exportBtn').setAttribute('aria-expanded', String(open));
 }
 
 function toggleExportMenu() {
-  const d = document.getElementById('exportDropdown');
-  d.style.display = d.style.display === 'none' ? 'block' : 'none';
+  setExportMenu(document.getElementById('exportDropdown').hidden);
 }
 
 document.addEventListener('click', function(e) {
   const menu = document.getElementById('exportMenu');
-  if (menu && !menu.contains(e.target)) {
-    document.getElementById('exportDropdown').style.display = 'none';
-  }
+  if (menu && !menu.contains(e.target)) setExportMenu(false);
+});
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') setExportMenu(false);
 });
 
 function printCurrentCat() {
-  document.getElementById('exportDropdown').style.display = 'none';
+  setExportMenu(false);
   window.print();
 }
 
 function printAll() {
-  document.getElementById('exportDropdown').style.display = 'none';
+  setExportMenu(false);
   const sections = document.querySelectorAll('.cat-section');
   sections.forEach(s => s.classList.add('print-all'));
   const style = document.createElement('style');
@@ -1179,17 +1254,21 @@ function build() {
   const sidebar = document.getElementById('sidebar');
   const content = document.getElementById('catContent');
 
-  document.getElementById('date').valueAsDate = new Date();
+  const restored = loadAll();
+  if (!document.getElementById('date').value) document.getElementById('date').valueAsDate = new Date();
+  META_IDS.forEach(id => document.getElementById(id).addEventListener('input', saveAll));
 
   CATS.forEach((cat, ci) => {
     // Sidebar
-    const navItem = document.createElement('div');
+    const navItem = document.createElement('button');
+    navItem.type = 'button';
     navItem.className = 'cat-nav-item' + (ci === 0 ? ' active' : '');
+    if (ci === 0) navItem.setAttribute('aria-current', 'true');
     navItem.id = 'nav_' + cat.id;
     navItem.onclick = () => switchCat(cat.id);
     navItem.innerHTML = `
       <div class="cat-dot" style="background:${cat.color}"></div>
-      <span class="cat-nav-label">Cat. ${cat.letter} — ${cat.title.split(' ').slice(0,3).join(' ')}</span>
+      <span class="cat-nav-label">Cat. ${cat.letter}: ${cat.title}</span>
       <span class="cat-badge" id="badge_${cat.id}">0/0</span>
       <div class="progress-mini"><div class="progress-mini-fill" id="mini_${cat.id}" style="width:0%"></div></div>
     `;
@@ -1217,7 +1296,7 @@ function build() {
         </div>
       </div>
       <div class="cat-actions">
-        <button class="btn-xs" onclick="markAllRequired()">Mark All Required</button>
+        <button type="button" class="btn-xs" onclick="markAllRequired()">Mark all in this category required</button>
       </div>
       <div class="checklist-body">
     `;
@@ -1236,10 +1315,10 @@ function build() {
         html += `
           <div class="check-item" id="row_${key}">
             <span class="item-name">${item}</span>
-            <span class="status-pill na" id="pill_${key}">—</span>
+            <span class="status-pill na" id="pill_${key}">Not set</span>
             <div class="toggle-group">
-              <button class="toggle-btn" id="r_${key}" title="Mark Required" onclick="cycleToRequired('${key}')">R</button>
-              <button class="toggle-btn" id="s_${key}" title="Mark Submitted" onclick="cycleToSubmitted('${key}')">S</button>
+              <button type="button" class="toggle-btn" id="r_${key}" title="Required" aria-label="Required: ${item}" aria-pressed="false" onclick="cycleToRequired('${key}')">R</button>
+              <button type="button" class="toggle-btn" id="s_${key}" title="Submitted" aria-label="Submitted: ${item}" aria-pressed="false" onclick="cycleToSubmitted('${key}')">S</button>
             </div>
           </div>
         `;
@@ -1252,7 +1331,11 @@ function build() {
     content.appendChild(section);
   });
 
+  Object.keys(state).forEach(renderItemState);
   updateProgress();
+  let lastCat = null;
+  try { lastCat = localStorage.getItem(STORE + ':cat'); } catch (e) { lastCat = null; }
+  if (restored && lastCat && document.getElementById('cat_' + lastCat)) switchCat(lastCat);
 }
 
 build();

@@ -408,9 +408,12 @@
   /* Routes are lower case; a few name a type spelled differently. */
   var ROUTE_TYPE = { '213rr': '213RR', '205a': '205A', '215a': '215A', notes: 'note', volunteers: 'volunteer' };
   /* One form per operational period. */
-  var PERIOD_ROUTES = ['202', '203', '205', '205a', '206', '208', '215', '215a'];
+  var PERIOD_ROUTES = ['202', '203', '205', '205a', '206', '208', '215', '215a', 'hqs', 'h200', 'h202', 'h203', 'h205a', 'h206', 'h215a'];
+  /* One form for the whole incident. */
+  var INCIDENT_ROUTES = ['201', 'h201', 'h258'];
   /* A list of records, each opened at #/route/id. */
-  var LIST_ROUTES = ['204', '209', '211', '213', '213rr', '221', 'notes', 'volunteers'];
+  var LIST_ROUTES = ['204', '209', '211', '213', '213rr', '221', 'notes', 'volunteers',
+    'h204', 'h221', 'h251', 'h252', 'h253', 'h254', 'h255', 'h256', 'h257', 'h259', 'h260'];
   var DAMAGE_SUBS = { homes: 'daHome', sites: 'daSite' };
 
   function routeType(name) {
@@ -429,6 +432,8 @@
       if (r.sub !== 'summary') r.id = parts[2] || null;
     } else if (LIST_ROUTES.indexOf(name) !== -1) {
       r.id = parts[1] || null;
+    } else if (name === 'jas') {
+      r.sub = parts[1] && /^[A-Za-z0-9-]{1,40}$/.test(parts[1]) ? parts[1] : null;
     }
     if (r.id && r.id !== 'new' && !ID_PART.test(r.id)) r.id = null;
     return r;
@@ -437,7 +442,7 @@
   function typeForRoute(r) {
     if (r.name === 'costs') return r.sub !== 'summary' && r.id ? r.sub : null;
     if (r.name === 'damage') return r.sub !== 'summary' && r.id ? DAMAGE_SUBS[r.sub] : null;
-    if (r.name === '201' || PERIOD_ROUTES.indexOf(r.name) !== -1) return routeType(r.name);
+    if (INCIDENT_ROUTES.indexOf(r.name) !== -1 || PERIOD_ROUTES.indexOf(r.name) !== -1) return routeType(r.name);
     if (LIST_ROUTES.indexOf(r.name) !== -1 && r.id) return routeType(r.name);
     return null;
   }
@@ -511,7 +516,7 @@
       case 'daHome': return d.address || 'Home';
       case 'daSite': return d.name || 'Damaged facility';
       case 'volunteer': return d.name || 'Volunteer';
-      default: return FORMS[type].code;
+      default: return (A.hicsItemTitle && A.hicsItemTitle(type, d)) || FORMS[type].code;
     }
   }
 
@@ -597,6 +602,7 @@
   A.parseRoute = parseRoute;
   A.routeType = routeType;
   A.PERIOD_ROUTES = PERIOD_ROUTES;
+  A.INCIDENT_ROUTES = INCIDENT_ROUTES;
   A.typeForRoute = typeForRoute;
   A.sessionMatchesRoute = sessionMatchesRoute;
   A.routeBase = routeBase;

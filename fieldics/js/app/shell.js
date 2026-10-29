@@ -4,7 +4,6 @@
 
   var $ = A.$;
   var C = A.C;
-  var NAV = A.NAV;
   var S = A.S;
   var btn = A.btn;
   var commitSession = A.commitSession;
@@ -38,6 +37,8 @@
   var sortedIncidents = A.sortedIncidents;
   var welcomeView = A.later('welcomeView');
   var closedBanner = A.later('closedBanner');
+
+  var positionsMode = '';
 
   /* ---------- render shell ---------- */
 
@@ -123,7 +124,7 @@
   function conflictCounts(inc) {
     var counts = {};
     C.conflictList(inc).forEach(function (g) {
-      NAV.forEach(function (item) {
+      A.navFor(inc).forEach(function (item) {
         if (item.types.indexOf(g.type) !== -1) counts[item.r] = (counts[item.r] || 0) + 1;
       });
     });
@@ -138,15 +139,16 @@
     var counts = conflictCounts(inc);
     var active = null;
     var group = '';
-    NAV.forEach(function (item) {
+    A.navFor(inc).forEach(function (item) {
       if (item.group !== group) {
         group = item.group;
         nav.appendChild(h('span', { class: 'nav-group', text: group }));
       }
       var on = S.route.name === item.r;
+      var label = inc.hics && item.r === '213' ? 'Messages' : item.label;
       var a = h('a', { class: 'tab', href: '#/' + item.r, 'aria-current': on ? 'page' : null },
         item.code ? h('span', { class: 'nav-code', text: item.code }) : null,
-        h('span', { class: 'nav-name', text: item.label }));
+        h('span', { class: 'nav-name', text: label }));
       if (counts[item.r]) {
         a.appendChild(h('span', { class: 'badge', text: String(counts[item.r]), title: plural(counts[item.r], 'item', 'items') + ' with versions to compare' }));
       }
@@ -188,6 +190,12 @@
     }
     var inc = cur();
     document.documentElement.classList.toggle('is-exercise', !!(inc && inc.exercise));
+    /* Position suggestions follow the command system in use. */
+    var mode = inc && inc.hics ? 'hics' : 'ics';
+    if (positionsMode !== mode) {
+      positionsMode = mode;
+      A.fillDatalist('ics-positions', mode === 'hics' ? A.F.HICS_POSITIONS : A.F.POSITIONS);
+    }
     renderNotices(inc);
     renderQuickLog(inc);
     renderIncidentBar(inc);
@@ -206,7 +214,7 @@
     var r = S.route;
     var el;
     if (r.name === 'log') el = logView(inc);
-    else if (r.name === '201') el = editorView(inc, '201', C.recordId('201'), null, false);
+    else if (A.INCIDENT_ROUTES.indexOf(r.name) !== -1) el = editorView(inc, A.routeType(r.name), C.recordId(A.routeType(r.name)), null, false);
     else if (A.PERIOD_ROUTES.indexOf(r.name) !== -1) el = periodFormView(inc, A.routeType(r.name));
     else if (r.name === '204') el = r.id ? recordRouteView(inc, '204', r.id) : list204View(inc);
     else if (r.name === '211') el = r.id ? recordRouteView(inc, '211', r.id) : list211View(inc);

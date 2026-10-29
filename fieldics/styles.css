@@ -700,7 +700,7 @@ a.item:hover, button.item:hover { background: var(--soft); }
 }
 .tag.warn { background: var(--warn-bg); color: var(--warn); }
 
-.table-wrap { overflow-x: auto; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-sm); }
+.table-wrap { overflow-x: auto; position: relative; margin: 10px 0; border: 1px solid var(--line); border-radius: var(--r-sm); }
 table.data { width: 100%; border-collapse: collapse; font-size: 0.9rem; background: var(--card); }
 table.data th, table.data td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
 table.data th { font-family: var(--font-cond); font-weight: 600; font-size: 0.82rem; color: var(--muted); background: var(--soft); }

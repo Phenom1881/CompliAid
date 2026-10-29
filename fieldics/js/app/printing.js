@@ -166,6 +166,7 @@
 
   /* The incident action plan for one period, in IAP order, page numbered. */
   function iapNodes(inc, n) {
+    if (inc.hics) return A.hicsIapNodes(inc, n);
     var nodes = [];
     var page = 1;
     ['202', '203'].forEach(function (t) {

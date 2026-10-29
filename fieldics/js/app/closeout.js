@@ -87,9 +87,10 @@
       nodes = nodes.filter(Boolean);
       if (nodes.length) out.push([name, nodes]);
     }
+    if (inc.hics) hicsPrintouts(inc, add);
     var g201 = C.getRecord(inc, C.recordId('201'));
     if (g201 && !g201.deleted) add('ICS-201-incident-briefing.pdf', [formNode(inc, g201)]);
-    C.periods(inc).forEach(function (p) {
+    if (!inc.hics) C.periods(inc).forEach(function (p) {
       add('IAP-period-' + p.n + '.pdf', A.iapNodes(inc, p.n));
       ['215', '215A'].forEach(function (t) {
         var g = C.getRecord(inc, C.recordId(t, p.n));
@@ -132,6 +133,27 @@
     return out;
   }
 
+  /*
+   * HICS forms for the archive. Patient forms (HICS 254, 255, 260) are never made into PDFs
+   * here: PDFs in the archive are not encrypted. They stay in the package file, which must
+   * be locked with a passphrase when it holds them.
+   */
+  function hicsPrintouts(inc, add) {
+    var g = C.getRecord(inc, C.recordId('h201'));
+    if (g && !g.deleted) add('HICS-201-incident-briefing.pdf', [formNode(inc, g)]);
+    C.periods(inc).forEach(function (p) {
+      add('IAP-period-' + p.n + '.pdf', A.iapNodes(inc, p.n));
+    });
+    [['h251', 'HICS-251-facility-status.pdf'], ['h252', 'HICS-252-time-sheets.pdf'], ['h253', 'HICS-253-volunteer-registration.pdf'],
+      ['h256', 'HICS-256-procurement.pdf'], ['h257', 'HICS-257-resource-accounting.pdf'], ['h259', 'HICS-259-casualty-reports.pdf'],
+      ['h221', 'HICS-221-demob-check-outs.pdf'], ['jas', 'job-action-sheets.pdf']].forEach(function (x) {
+      var nodes = sortedBy(C.listRecords(inc, x[0]), 'from').map(function (r) { return formNode(inc, r); });
+      add(x[1], nodes);
+    });
+    var g258 = C.getRecord(inc, C.recordId('h258'));
+    if (g258 && !g258.deleted) add('HICS-258-resource-directory.pdf', [formNode(inc, g258)]);
+  }
+
   function readme(inc, files, now) {
     var lines = [
       'FieldICS close-out archive',
@@ -152,6 +174,7 @@
       'Files:'
     ];
     files.forEach(function (f) { lines.push('  ' + f.name + '  (' + Math.max(1, Math.round(f.data.length / 1024)) + ' KB)'); });
+    if (C.hasPatientRecords(inc)) lines.push('', 'Patient records (HICS 254, 255, 260) are only in the locked package file, never in the PDFs.');
     lines.push('', 'Keep this archive with the incident records under your records retention schedule.', '');
     return lines.join('\r\n');
   }
@@ -174,10 +197,17 @@
     var status = h('p', { class: 'hint', id: 'coStatus', role: 'status' });
     body.appendChild(err);
     body.appendChild(status);
+    if (C.hasPatientRecords(inc)) {
+      body.appendChild(h('p', { class: 'warn-note', text: 'This incident has patient records. The package file in the archive keeps them and must be locked with a passphrase. Patient forms are not made into PDFs, because PDFs in the archive are not encrypted.' }));
+    }
     var go = btn('Make the archive', function () {
       showError(err, '');
       if (pass.value !== pass2.value) {
         showError(err, 'The passphrases do not match.');
+        return;
+      }
+      if (C.hasPatientRecords(inc) && !pass.value) {
+        showError(err, 'This incident has patient records. Add a passphrase for the package file.');
         return;
       }
       go.disabled = true;

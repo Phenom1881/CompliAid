@@ -6,12 +6,14 @@
  * {
  *   format: 'field-ics-setup', version: 1,
  *   locality: { name, agency, applicant, state },
- *   options: { regularDay, backupHours, checkinsToLog, requireLock, minPasscode },
+ *   options: { regularDay, backupHours, checkinsToLog, requireLock, minPasscode, hics },
  *   people: [{ name, position, jobTitle, department, personType, budgeted, regRate, otRate, fringeReg, fringeOt, phone, email }],
  *   equipment: [{ description, unitId, code, usageUnit, rate, rateSource, rateSchedule }],
  *   sites: ['...'], places: ['...'],
- *   rateSchedules: [{ id, title, effective, source, rows: [[code, equipment, manufacturer, spec, capacity, hp, notes, unit, rate]] }]
+ *   rateSchedules: [{ id, title, effective, source, rows: [[code, equipment, manufacturer, spec, capacity, hp, notes, unit, rate]] }],
+ *   jas: [{ id, position, section, reportsTo, mission, phases: { immediate, intermediate, extended, demob: ['action', ...] } }]
  * }
+ * jas: a hospital's own HICS Job Action Sheets, used in place of the built-in ones.
  * Every value is checked and trimmed. Nothing in a setup file is ever treated as code or markup.
  */
 (function (root, factory) {
@@ -26,7 +28,8 @@
   var FORMAT = 'field-ics-setup';
   var VERSION = 1;
   var RATE_COLUMNS = ['code', 'equipment', 'manufacturer', 'spec', 'capacity', 'hp', 'notes', 'unit', 'rate'];
-  var MAX = { people: 2000, equipment: 2000, sites: 500, places: 100, schedules: 10, rows: 5000 };
+  var MAX = { people: 2000, equipment: 2000, sites: 500, places: 100, schedules: 10, rows: 5000, jas: 120, actions: 60 };
+  var JAS_PHASES = ['immediate', 'intermediate', 'extended', 'demob'];
   var PERSON_TYPES = ['Applicant employee', 'Mutual aid', 'EMAC', 'Donated labor', 'Other'];
   var CTRL_RE = /[\u0000-\u001F\u007F]/g;
 
@@ -165,14 +168,35 @@
         checkinsToLog: opt.checkinsToLog !== false,
         /* The office can require the device lock on every device that loads this setup. */
         requireLock: opt.requireLock === true,
+        /* A hospital's setup: new incidents start on HICS. */
+        hics: opt.hics === true,
         minPasscode: minPasscode && minPasscode >= 6 ? Math.round(minPasscode) : 6
       },
       people: people,
       equipment: equipment,
       sites: uniqueText(obj.sites, MAX.sites),
       places: uniqueText(obj.places, MAX.places, 120),
-      rateSchedules: schedules
+      rateSchedules: schedules,
+      jas: list(obj.jas, MAX.jas).map(cleanJas).filter(Boolean)
     };
+  }
+
+  /* One Job Action Sheet from a setup file, or null when it has no position or no actions. */
+  function cleanJas(raw, i) {
+    if (!raw || typeof raw !== 'object') return null;
+    var position = txt(raw.position, 120);
+    if (!position) return null;
+    var out = {
+      id: txt(raw.id, 40).replace(/[^A-Za-z0-9-]/g, '') || 'jas' + (i + 1),
+      position: position, section: txt(raw.section, 60), reportsTo: txt(raw.reportsTo, 120), mission: txt(raw.mission, 1000), phases: {}
+    };
+    var any = false;
+    JAS_PHASES.forEach(function (p) {
+      var src = raw.phases && typeof raw.phases === 'object' ? raw.phases[p] : null;
+      out.phases[p] = list(src, MAX.actions).map(function (x) { return txt(x, 400); }).filter(Boolean);
+      if (out.phases[p].length) any = true;
+    });
+    return any ? out : null;
   }
 
   function emptySetup() {

@@ -23,6 +23,13 @@
       'Press "Check the IAP" before the briefing, then print the IAP or save it as a PDF.',
       'Send status with the ICS 209. A new 209 starts filled in from the log, damage assessment, check-ins, and costs.'
     ]],
+    ['Hospitals (HICS)', [
+      'Choose HICS (hospital) as the command system when you create the incident. A hospital setup file can make it the default.',
+      'Start each position on its Job Action Sheet and tick actions off as they are done; the time is recorded.',
+      'Fill the HICS 203, then build the plan with the IAP Quick Start or the HICS 200 to 215A, and print the IAP with the HICS 207 chart.',
+      'Patient tracking (HICS 254, 255, 260) needs the device lock. Package files with patient records need a passphrase, and QR codes never carry them.',
+      'The HICS 259 casualty report counts itself from the HICS 254 sheets.'
+    ]],
     ['Sharing between devices', [
       'Save a package file every few hours; FieldICS reminds you. Move it any way you can, and import it on the other device. Everything merges and nothing is overwritten.',
       'On EOC computers with Chrome or Edge, a shared folder keeps everyone in step: Settings, Shared folder.',

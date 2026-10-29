@@ -695,7 +695,7 @@
     var head = h('section', { class: 'card' });
     var titleRow = h('div', { class: 'view-head' });
     titleRow.appendChild(h('div', null,
-      h('h2', { text: def.group === 'cost' || def.group === 'assess' || def.group === 'resource' ? def.title + (s.isNew ? ' (new entry)' : '') : def.group === 'note' ? (s.isNew ? 'New note' : 'Note') : def.code + ' ' + def.title }),
+      h('h2', { text: def.group === 'cost' || def.group === 'assess' || def.group === 'resource' ? def.title + (s.isNew ? ' (new entry)' : '') : def.group === 'note' ? (s.isNew ? 'New note' : 'Note') : (inc.hics && /^ICS /.test(def.code) ? 'H' : '') + def.code + ' ' + def.title }),
       opts.subtitle ? h('p', { class: 'hint', text: opts.subtitle }) : null));
     if (opts.back) titleRow.appendChild(h('a', { class: 'btn btn-quiet', href: opts.back, text: opts.backLabel || 'Back to list' }));
     head.appendChild(titleRow);

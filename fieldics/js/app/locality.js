@@ -131,6 +131,8 @@
     /* Device lock policy: every device that loads this setup is asked to turn the lock on. */
     var lockBox = h('input', { type: 'checkbox', id: 'suRequireLock', checked: s.options.requireLock === true });
     form.appendChild(h('label', { class: 'check', for: 'suRequireLock' }, lockBox, ' Require the device lock on every device that loads this setup'));
+    var hicsBox = h('input', { type: 'checkbox', id: 'suHics', checked: s.options.hics === true });
+    form.appendChild(h('label', { class: 'check', for: 'suHics' }, hicsBox, ' This is a hospital: new incidents use HICS'));
     form.appendChild(h('div', { class: 'grid two' },
       field('suMinPass', 'Shortest passcode allowed (characters, 6 or more)', s.options.minPasscode || 6, { numeric: true, max: 2 })));
     form.appendChild(h('div', { class: 'row end' }, h('button', { type: 'submit', class: 'btn btn-primary', id: 'suSave', text: 'Save setup' })));
@@ -147,7 +149,7 @@
         return;
       }
       next.options = { regularDay: $('suRegular').value, backupHours: $('suBackup').value, checkinsToLog: logBox.checked,
-        requireLock: lockBox.checked, minPasscode: minPass };
+        requireLock: lockBox.checked, minPasscode: minPass, hics: hicsBox.checked };
       try {
         next = Setup.parseSetup(next);
       } catch (err) {

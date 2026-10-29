@@ -3,7 +3,20 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>CompliAid, FEMA PA Compliance Intelligence</title>
+  <title>CompliAid: FEMA Public Assistance compliance tools</title>
+  <meta name="description" content="Tools for emergency managers and recovery organizations working through FEMA Public Assistance: REACT, a policy assistant; FieldICS, offline ICS and cost documentation; and a PA documentation checklist." />
+  <link rel="canonical" href="https://compliaid.com/" />
+  <meta name="theme-color" content="#f7f6f2" />
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/icon-32.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="CompliAid" />
+  <meta property="og:title" content="CompliAid: FEMA Public Assistance compliance tools" />
+  <meta property="og:description" content="Tools for emergency managers and recovery organizations working through FEMA Public Assistance: REACT, a policy assistant; FieldICS, offline ICS and cost documentation; and a PA documentation checklist." />
+  <meta property="og:url" content="https://compliaid.com/" />
+  <meta property="og:image" content="https://compliaid.com/assets/social-card.png" />
+  <meta name="twitter:card" content="summary_large_image" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <style>
@@ -240,9 +253,10 @@
       margin: 0 auto;
       padding: 0 48px 80px;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 20px;
     }
+    @media (max-width: 680px) { .products { grid-template-columns: 1fr; } }
 
     .product-card {
       background: var(--card);
@@ -304,6 +318,7 @@
     }
 
     footer a { color: var(--ink-muted); text-decoration: none; }
+    .foot-links { display: flex; gap: 18px; flex-wrap: wrap; }
     footer a:hover { color: var(--ink); }
 
     /* ANIMATIONS */
@@ -329,36 +344,56 @@
       .hero { padding-top: 120px; }
     }
 
-    /* Phone menu: tighter spacing; REACT stays in the menu, so the extra button is hidden. */
     @media (max-width: 680px) {
       nav { padding-left: 16px; padding-right: 16px; }
-      .nav-links { gap: 14px; }
-      .nav-links a { font-size: 0.8rem; white-space: nowrap; }
+    }
+  
+    /* Shared navigation: the current page is marked, and the phone menu drops the extra button. */
+    .nav-logo img { display: block; height: 36px; width: auto; }
+    .nav-logo .logo-mark { display: none; }
+    .nav-links a[aria-current="page"] { color: var(--accent); font-weight: 600; }
+    @media (max-width: 680px) {
+      .nav-logo .logo-full { display: none; }
+      .nav-logo .logo-mark { display: block; height: 30px; }
+      .nav-links { gap: 12px; }
+      .nav-links a { font-size: 0.78rem; white-space: nowrap; }
       .nav-links li:has(.nav-cta) { display: none; }
+    }
+    @media (max-width: 360px) {
+      .nav-logo .logo-mark { height: 26px; }
+      .nav-links a { font-size: 0.74rem; }
+      .nav-links { gap: 9px; }
+    }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
   </style>
 </head>
 <body>
 
-  <nav>
-    <a href="index.html" class="nav-logo">
-      <img src="CompliAid.png" alt="CompliAid" style="height: 32px; width: auto;" />
+  <nav aria-label="Main">
+    <a href="index.html" class="nav-logo" aria-label="CompliAid home">
+      <img class="logo-full" src="assets/compliaid-logo.png" alt="CompliAid" width="139" height="36" />
+      <img class="logo-mark" src="assets/icon-192.png" alt="CompliAid" width="28" height="28" />
     </a>
     <ul class="nav-links">
       <li><a href="react.html">REACT</a></li>
       <li><a href="fieldics/">FieldICS</a></li>
-      <li><a href="https://disasterdata.io" target="_blank">DisasterData.IO</a></li>
+      <li><a href="checklist.html">Checklist</a></li>
+      <li><a href="https://disasterdata.io" target="_blank" rel="noopener">DisasterData.IO</a></li>
       <li><a href="react.html" class="nav-cta">Try REACT</a></li>
     </ul>
   </nav>
 
+  <main id="main">
   <section class="hero">
     <span class="hero-tag">FEMA PA Compliance Intelligence</span>
     <h1>Compliance guidance,<br /><em>built for the field.</em></h1>
     <p>CompliAid helps emergency managers, subrecipients, and recovery specialists navigate FEMA Public Assistance requirements, faster, with fewer errors, and without the guesswork.</p>
     <div class="hero-actions">
       <a href="react.html" class="btn-primary">Open REACT →</a>
-      <a href="https://disasterdata.io" target="_blank" class="btn-secondary">DisasterData.IO ↗</a>
+      <a href="fieldics/" class="btn-secondary">Open FieldICS →</a>
     </div>
   </section>
 
@@ -406,15 +441,28 @@
       <div class="product-sub">Offline ICS forms, check-in, and FEMA PA cost documentation for local responders. Works with no signal, and data stays on the device.</div>
       <div class="product-arrow">→</div>
     </a>
-    <a href="https://disasterdata.io" target="_blank" class="product-card">
+    <a href="checklist.html" class="product-card">
+      <div class="product-name">PA Documentation Checklist</div>
+      <div class="product-sub">Track required and submitted documents for a Public Assistance project, category by category. Free, and it runs in your browser.</div>
+      <div class="product-arrow">→</div>
+    </a>
+    <a href="https://disasterdata.io" target="_blank" rel="noopener" class="product-card">
       <div class="product-name">DisasterData.IO</div>
       <div class="product-sub">County-level FEMA disaster declaration visualization. Explore declarations across the U.S.</div>
       <div class="product-arrow">↗</div>
     </a>
   </div>
 
+  </main>
+
   <footer>
     <span>© 2026 CompliAid</span>
+    <div class="foot-links">
+      <a href="react.html">REACT</a>
+      <a href="fieldics/">FieldICS</a>
+      <a href="checklist.html">PA Checklist</a>
+      <a href="https://disasterdata.io" target="_blank" rel="noopener">DisasterData.IO</a>
+    </div>
     <span>Built for emergency management professionals.</span>
   </footer>
 

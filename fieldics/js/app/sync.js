@@ -220,7 +220,8 @@
         return subdir(root, inc.id, true).then(function (dir) {
           var step = Promise.resolve();
           if (state.saved.written[inc.id] !== sig) {
-            var pkg = C.buildPackage(inc, { noPhotos: true, deviceId: S.settings.deviceId, deviceName: deviceLabel() });
+            /* Patient records go into the folder only when its files are locked with the folder passphrase. */
+            var pkg = C.buildPackage(inc, { noPhotos: true, noPatients: !state.key, deviceId: S.settings.deviceId, deviceName: deviceLabel() });
             step = seal(pkg).then(function (text) { return writeText(dir, myFile(), text); }).then(function () {
               state.saved.written[inc.id] = sig;
               wrote++;

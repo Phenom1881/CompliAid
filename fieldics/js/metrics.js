@@ -55,7 +55,7 @@
       seen(r.at);
     });
     var forms = {};
-    Forms.FORM_TYPES.forEach(function (t) { forms[t] = C.listRecords(inc, t).length; });
+    Forms.FORM_TYPES.concat(Forms.HICS_TYPES || []).forEach(function (t) { forms[t] = C.listRecords(inc, t).length; });
     var plist = C.periods(inc);
     var iapComplete = plist.filter(function (p) {
       var has = function (t) { var g = C.getRecord(inc, C.recordId(t, p.n)); return g && !g.deleted; };
@@ -73,6 +73,7 @@
       id: inc.id,
       name: inc.name,
       exercise: inc.exercise === true,
+      hics: inc.hics === true,
       createdAt: inc.createdAt,
       lastActivity: last,
       activeHours: Math.round(minutesBetween(first, last) / 6) / 10,

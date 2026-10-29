@@ -48,12 +48,14 @@
       $('incDisaster').value = inc.disasterNumber || '';
       $('incExercise').checked = inc.exercise === true;
       $('incAltDebris').checked = inc.altDebris === true;
+      $('incSystem').value = inc.hics ? 'hics' : 'ics';
       $('incCostBox').open = !!(inc.applicant || inc.paId || inc.disasterNumber || inc.altDebris);
     } else {
       ['incName', 'incNumber', 'incLocation', 'incApplicant', 'incPaId', 'incDisaster'].forEach(function (id) { $(id).value = ''; });
       $('incApplicant').value = A.setup().locality.applicant || '';
       $('incExercise').checked = false;
       $('incAltDebris').checked = false;
+      $('incSystem').value = A.setup().options.hics ? 'hics' : 'ics';
       $('incCostBox').open = false;
       var start = nowMinute();
       start.setMinutes(0);
@@ -74,7 +76,8 @@
       paId: $('incPaId').value,
       disasterNumber: $('incDisaster').value,
       exercise: $('incExercise').checked,
-      altDebris: $('incAltDebris').checked
+      altDebris: $('incAltDebris').checked,
+      hics: $('incSystem').value === 'hics'
     };
   }
 

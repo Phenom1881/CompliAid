@@ -70,11 +70,15 @@
       btn('Save package file', function () { A.openExport(); }, 'btn-primary', { id: 'exportBtn' }),
       btn('Import package file', function () { chooseImport(); }, '', { id: 'importBtn' })));
     share.appendChild(h('h3', { class: 'small-title', text: 'Phone to phone with no signal' }));
-    share.appendChild(h('p', { class: 'hint', text: 'Show a moving QR code on this device and point the other device\'s camera at it. Sends the log and forms without photos. Works best for changes since the last transfer.' }));
+    share.appendChild(h('p', { class: 'hint', text: 'Show a moving QR code on this device and point the other device\'s camera at it. Sends the log and forms without photos or patient records. Works best for changes since the last transfer.' }));
     share.appendChild(h('div', { class: 'row wrap' },
       btn('Send by QR code', function () { openQRSend(); }, '', { id: 'qrSendBtn' }),
       btn('Receive by QR code', function () { openQRReceive(); }, '', { id: 'qrReceiveBtn' })));
     root.appendChild(share);
+    if (inc.hics) {
+      root.appendChild(A.hicsPrintCard(inc));
+      return finishShare(root, inc);
+    }
 
     var printCard = h('section', { class: 'card' });
     printCard.appendChild(h('h2', { text: 'Print or save as PDF' }));
@@ -113,7 +117,11 @@
     printCard.appendChild(h('p', { class: 'hint', text: 'Blank forms to keep in the EOC and vehicles for when devices are down: ICS 201 to 221, home damage assessment forms, volunteer and labor sign-in sheets, and equipment and materials logs.' }));
     printCard.appendChild(btn('Paper backup kit', function () { printPaperKit(); }, '', { id: 'paperKitBtn' }));
     root.appendChild(printCard);
+    return finishShare(root, inc);
+  }
 
+  /* Spreadsheets, pilot metrics, and close-out: the same for ICS and HICS incidents. */
+  function finishShare(root, inc) {
     var csv = h('section', { class: 'card' });
     csv.appendChild(h('h2', { text: 'Spreadsheets' }));
     csv.appendChild(h('p', { class: 'hint', text: 'The Excel workbook has a summary sheet and one sheet per cost type. Rates and amounts can be filled in there, and every total updates.' }));
@@ -174,6 +182,9 @@
       ? plural(inc.atts.length, 'photo', 'photos') + ', about ' + sizeText(bytes) + '. Leave them out to send a small file by email or text, and send them later with a full package.'
       : 'This incident has no photos.';
     $('expNoPhotos').disabled = !inc.atts.length;
+    var phi = C.hasPatientRecords(inc);
+    $('expPatientsBox').hidden = !phi;
+    $('expNoPatients').checked = false;
     showError($('expError'), '');
     var enc = C.cryptoAvailable();
     $('expPass').disabled = !enc;
@@ -192,8 +203,13 @@
     var pass2 = $('expPass2').value;
     if ((pass || pass2) && pass !== pass2) return Promise.reject(new Error('The passphrases do not match.'));
     var noPhotos = $('expNoPhotos').checked;
+    /* Patient information never leaves the device unencrypted. */
+    var noPatients = C.hasPatientRecords(inc) && $('expNoPatients').checked;
+    if (C.hasPatientRecords(inc) && !noPatients && !pass) {
+      return Promise.reject(new Error('This incident has patient records. Add a passphrase, or tick Leave out patient records.'));
+    }
     var now = C.nowISO();
-    var pkg = C.buildPackage(inc, { changesOnly: scope === 'changes', noPhotos: noPhotos, deviceId: S.settings.deviceId, deviceName: deviceLabel(), now: now });
+    var pkg = C.buildPackage(inc, { changesOnly: scope === 'changes', noPhotos: noPhotos, noPatients: noPatients, deviceId: S.settings.deviceId, deviceName: deviceLabel(), now: now });
     var count = pkg.entries.length + pkg.revs.length + pkg.atts.length;
     if (!count && pkg.scope === 'changes') return Promise.reject(new Error('Nothing new to export since your last export.'));
     var locked = !!pass;
@@ -201,7 +217,7 @@
     return step.then(function (out) {
       var text = JSON.stringify(out, null, locked ? 0 : 1);
       var name = 'fieldics_' + C.slug(inc.name) + '_' + C.stamp() + '_' + C.slug(deviceLabel()) + (pkg.scope === 'changes' ? '_changes' : '') +
-        (noPhotos ? '_no-photos' : '') + (inc.exercise ? '_exercise' : '') + (locked ? '_locked' : '') + '.json';
+        (noPhotos ? '_no-photos' : '') + (noPatients ? '_no-patients' : '') + (inc.exercise ? '_exercise' : '') + (locked ? '_locked' : '') + '.json';
       return { text: text, filename: name, count: count, exportedAt: now, locked: locked, noPhotos: noPhotos && inc.atts.length > 0 };
     });
   }

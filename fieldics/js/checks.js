@@ -37,7 +37,7 @@
   function emptyBlocks(type, data) {
     var out = [];
     FORMS[type].blocks.forEach(function (b, i) {
-      if (b.noPrint || b.prepared || b.signature || b.geo) return;
+      if (b.noPrint || b.prepared || b.signature || b.geo || b.optional) return;
       var filled = b.fields.some(function (f) { return !empty(data[f.k]); });
       if (!filled) out.push({ index: i, n: b.n || '', title: b.title, field: b.fields[0].k });
     });
@@ -195,5 +195,59 @@
     return out;
   }
 
-  return { iap: iap, costs: costs, emptyBlocks: emptyBlocks };
+  /* Checks a hospital incident action plan (HICS) for one operational period. */
+  function hicsIap(inc, n) {
+    var out = [];
+    function add(level, text, extra) {
+      var x = { level: level, text: text, period: n };
+      if (extra) Object.keys(extra).forEach(function (k) { x[k] = extra[k]; });
+      out.push(x);
+    }
+    var p = C.periodOf(inc, n);
+    if (!p) {
+      add('fix', 'Operational period ' + n + ' does not exist.');
+      return out;
+    }
+    function form(type) {
+      return live(inc, C.recordId(type, n));
+    }
+    function blanks(type, g, skip) {
+      if (g.conflict) add('fix', 'The ' + FORMS[type].code + ' has versions to compare.', { type: type, rid: g.rid });
+      emptyBlocks(type, g.winner.data).forEach(function (b) {
+        if (skip && skip.indexOf(b.field) !== -1) return;
+        add('check', 'The ' + FORMS[type].code + ' has nothing in block ' + (b.n ? b.n + ' (' + b.title + ')' : b.title) + '.', { type: type, rid: g.rid, field: b.field, block: b.index });
+      });
+    }
+    var qs = form('hqs');
+    var g202 = form('h202');
+    if (!g202 && !qs) add('fix', 'No HICS 202 Incident Objectives or IAP Quick Start for this period.', { type: 'h202' });
+    if (g202) {
+      var d = g202.winner.data;
+      if (empty(d.objectives)) add('fix', 'The HICS 202 has no objectives (block 3).', { type: 'h202', rid: g202.rid, field: 'objectives' });
+      if (empty(d.approvedName)) add('check', 'The HICS 202 is not marked approved by the Incident Commander (block 7).', { type: 'h202', rid: g202.rid, field: 'approvedName' });
+      if (d.sspRequired === 'Yes' && !form('h215a')) add('fix', 'The HICS 202 says a safety analysis is required, and there is no HICS 215A for this period.', { type: 'h215a' });
+      blanks('h202', g202, ['objectives', 'approvedName']);
+    }
+    var g203 = form('h203');
+    if (!g203 && !qs) add('fix', 'No HICS 203 Organization Assignment List for this period.', { type: 'h203' });
+    if (g203 && empty(g203.winner.data.cmdICName)) add('fix', 'The HICS 203 does not name the Incident Commander (block 3).', { type: 'h203', rid: g203.rid, field: 'cmdICName' });
+    if (!C.listRecords(inc, 'h204', n).length && !qs) add('check', 'No HICS 204 assignment lists for this period.', { type: 'h204' });
+    C.listRecords(inc, 'h204', n).forEach(function (g) {
+      if (!(g.winner.data.lines || []).length) add('check', 'A HICS 204 (' + (g.winner.data.branch || g.winner.data.section || 'no section') + ') has no objectives or assignments (block 5).', { type: 'h204', rid: g.rid, field: 'lines' });
+    });
+    var g215 = form('h215a');
+    if (g215 && !(g215.winner.data.hazards || []).length) add('fix', 'The HICS 215A lists no hazards (block 3).', { type: 'h215a', rid: g215.rid, field: 'hazards' });
+    var g206 = form('h206');
+    if (g206 && empty(g206.winner.data.approvedName)) add('check', 'The HICS 206 is not approved by the Safety Officer (block 9).', { type: 'h206', rid: g206.rid, field: 'approvedName' });
+    var g200 = form('h200');
+    if (g200 && empty(g200.winner.data.approvedName)) add('check', 'The HICS 200 cover sheet is not approved by the Incident Commander (block 5).', { type: 'h200', rid: g200.rid, field: 'approvedName' });
+    if (qs) {
+      var q = qs.winner.data;
+      if (empty(q.situation)) add('check', 'The IAP Quick Start has no situation summary (block 3).', { type: 'hqs', rid: qs.rid, field: 'situation' });
+      if (!(q.objectives || []).length) add('fix', 'The IAP Quick Start has no objectives (block 6).', { type: 'hqs', rid: qs.rid, field: 'objectives' });
+    }
+    return out;
+  }
+
+  return { iap: iap, hicsIap: hicsIap, costs: costs, emptyBlocks: emptyBlocks };
 });

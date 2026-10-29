@@ -123,7 +123,8 @@
       changesBtn.className = 'btn' + (which === 'changes' ? ' btn-primary' : '');
       fullBtn.className = 'btn' + (which === 'full' ? ' btn-primary' : '');
       status.textContent = 'Preparing...';
-      var pkg = C.buildPackage(inc, { changesOnly: which === 'changes', noPhotos: true, deviceId: S.settings.deviceId, deviceName: deviceLabel() });
+      /* QR codes are not encrypted, so patient records never go this way. */
+      var pkg = C.buildPackage(inc, { changesOnly: which === 'changes', noPhotos: true, noPatients: true, deviceId: S.settings.deviceId, deviceName: deviceLabel() });
       var count = pkg.entries.length + pkg.revs.length;
       if (!count && which === 'changes') {
         status.textContent = 'Nothing new since the last package file or transfer. Send everything instead.';

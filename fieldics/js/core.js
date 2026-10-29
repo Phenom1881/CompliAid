@@ -407,6 +407,7 @@
       paId: cleanText(fields.paId, 60, 'FEMA PA ID', false),
       disasterNumber: cleanText(fields.disasterNumber, 60, 'Disaster number', false),
       altDebris: fields.altDebris === true,
+      hics: fields.hics === true,
       closedAt: fields.closedAt ? toISO(fields.closedAt, 'Closed time') : '',
       closedBy: fields.closedAt ? cleanText(fields.closedBy, LIMITS.name, 'Closed by', false) : ''
     };
@@ -416,9 +417,10 @@
    * altDebris: the applicant elected the FEMA PA alternative procedures for debris
    * removal, under which straight time for budgeted employees on Category A is eligible.
    * closedAt, closedBy: the incident was closed out; the app shows it read-only.
+   * hics: a hospital incident, run with the Hospital Incident Command System forms.
    */
-  var META_KEYS = ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'exercise', 'altDebris', 'closedAt', 'closedBy'];
-  var META_FLAGS = ['exercise', 'altDebris'];
+  var META_KEYS = ['name', 'number', 'location', 'applicant', 'paId', 'disasterNumber', 'exercise', 'altDebris', 'hics', 'closedAt', 'closedBy'];
+  var META_FLAGS = ['exercise', 'altDebris', 'hics'];
 
   function metaValue(obj, k) {
     if (META_FLAGS.indexOf(k) !== -1) return obj[k] === true;
@@ -439,6 +441,7 @@
       paId: m.paId,
       disasterNumber: m.disasterNumber,
       altDebris: m.altDebris,
+      hics: m.hics,
       closedAt: '',
       closedBy: '',
       createdAt: now,
@@ -491,6 +494,7 @@
       disasterNumber: inc.disasterNumber || '',
       exercise: inc.exercise === true,
       altDebris: inc.altDebris === true,
+      hics: inc.hics === true,
       closedAt: inc.closedAt || '',
       closedBy: inc.closedBy || '',
       createdAt: inc.createdAt,
@@ -530,6 +534,7 @@
     if (!inc.name) inc.name = 'Untitled incident';
     inc.exercise = inc.exercise === true;
     inc.altDebris = inc.altDebris === true;
+    inc.hics = inc.hics === true;
     if (typeof inc.createdAt !== 'string') inc.createdAt = now;
     if (typeof inc.metaUpdatedAt !== 'string') inc.metaUpdatedAt = inc.createdAt;
     if (inc.lastExportAt !== null && typeof inc.lastExportAt !== 'string') inc.lastExportAt = null;
@@ -932,10 +937,12 @@
     var photoSince = opts.changesOnly ? photoExportAt(inc) : null;
     function fresh(x) { return !since || (x._rx && x._rx > since); }
     function freshPhoto(x) { return !photoSince || (x._rx && x._rx > photoSince); }
-    var revs = inc.revs.filter(fresh).map(publicRev);
-    var newer = revs.some(function (r) { return V3_TYPES.indexOf(r.type) === -1; });
+    /* noPatients leaves out the forms that hold patient information (HICS 254, 255, 260). */
+    var revs = inc.revs.filter(fresh).filter(function (r) { return !(opts.noPatients && isPhiType(r.type)); }).map(publicRev);
+    var newer = inc.hics === true || revs.some(function (r) { return V3_TYPES.indexOf(r.type) === -1; });
     return {
       photos: opts.noPhotos ? 'left-out' : 'included',
+      patients: opts.noPatients && hasPatientRecords(inc) ? 'left-out' : 'included',
       format: FORMAT,
       version: newer ? VERSION : 3,
       exportedAt: now,
@@ -964,6 +971,15 @@
   /* When photos were last included in a saved package. Older incidents tracked one time for both. */
   function photoExportAt(inc) {
     return inc.lastPhotoExportAt === undefined ? inc.lastExportAt : inc.lastPhotoExportAt;
+  }
+
+  function isPhiType(type) {
+    return !!(FORMS[type] && FORMS[type].phi);
+  }
+
+  /* True when the incident holds any form with patient information. */
+  function hasPatientRecords(inc) {
+    return inc.revs.some(function (r) { return isPhiType(r.type); });
   }
 
   function countPending(inc) {
@@ -1079,10 +1095,12 @@
     var now = nowISO();
     if (inc.exercise !== undefined && typeof inc.exercise !== 'boolean') throw new Error('The package incident is not valid.');
     if (inc.altDebris !== undefined && typeof inc.altDebris !== 'boolean') throw new Error('The package incident is not valid.');
+    if (inc.hics !== undefined && typeof inc.hics !== 'boolean') throw new Error('The package incident is not valid.');
     var meta = {
       id: inc.id,
       exercise: inc.exercise === true,
       altDebris: inc.altDebris === true,
+      hics: inc.hics === true,
       closedAt: inc.closedAt ? toISO(inc.closedAt, 'Closed time') : '',
       closedBy: inc.closedAt ? cleanText(inc.closedBy, LIMITS.name, 'Closed by', false) : '',
       name: name,
@@ -1833,6 +1851,8 @@
     addAttachment: addAttachment,
     getAttachment: getAttachment,
     signoffsFor: signoffsFor,
+    isPhiType: isPhiType,
+    hasPatientRecords: hasPatientRecords,
     signOff: signOff,
     buildPackage: buildPackage,
     markExported: markExported,

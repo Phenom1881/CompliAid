@@ -2,7 +2,7 @@
 
 Offline ICS forms, activity logs, check-in, and cost documentation for local emergency management. It runs in a web browser, keeps everything on the device, and works with no signal. Devices share by package file or by a loop of QR codes. Everything merges, and nothing is silently overwritten.
 
-Version 0.4.
+Version 0.5.
 
 ## What is in this version
 
@@ -23,6 +23,8 @@ Version 0.4.
 | Close out | One archive file for the incident record: the package file with photos, PDFs of every form, the IAPs, the log, the cost summary, and the damage assessment, plus the spreadsheets. Then the incident becomes read only on every device. It can be reopened. |
 | Practice incident | An invented flash flood with forms, a log, check-ins, costs, a damage assessment, and volunteers, marked EXERCISE, for training. |
 | Quick start | A short guide inside the app (Settings, Quick start) that works with no signal. |
+| Hospitals (HICS) | Choose HICS as an incident's command system for a hospital. The menu, positions, and forms switch to the Hospital Incident Command System: the IAP Quick Start, HICS 200 to 206 and 215A (the IAP prints in HICS order with the HICS 207 chart drawn from the 203), 221 demobilization checklists, 251 facility system status, 252 time sheets, 253 volunteer registration, 256 procurement, 257 resource accounting, 258 resource directory, and 259 casualty and fatality reports that count themselves from the 254. Job Action Sheets for 25 HIMT positions record each action with its time; a hospital loads its own sheets in the setup file. A HICS paper backup kit prints blank forms and sheets. |
+| Patient tracking | HICS 254, 255, and 260. These open only with the device lock on. A package file that carries them must have a passphrase (or leave them out), QR transfers never carry them, a shared folder carries them only when it is locked, and close-out archives keep them only in the locked package file, never in the PDFs. |
 | ICS 211 Incident Check-In List | Check in people, equipment, and crews. Check-ins and check-outs go into the 214 automatically. Add a checked-in resource to a 204. Turn hours on scene into labor or equipment cost entries, one per day. |
 | ICS 213 and 213 RR | Messages and resource requests. Request items can become materials, rental, or contract cost entries that keep the request number. |
 | Cost capture | Force account labor, equipment, materials, rentals, contracts, and travel, meals, and other direct costs, laid out like the FEMA Public Assistance summary records. Photos of receipts and invoices on any entry. Volunteer labor and donated equipment and materials are kept out of the cost totals and listed as donated resources. |
@@ -112,6 +114,7 @@ To use it in the field, host it over HTTPS so phones can install it and use the 
 - The automated tests run in Chromium here, and the version 0.4 browser test also runs in WebKit (the engine Safari uses) on GitHub. Real iPhones, iPads, cameras, and GPS have not been tested by hand yet. Use `docs/device-test-checklist.md` on your own devices before a pilot.
 - The shared folder needs Chrome or Edge on a computer. Some browsers cannot remember the folder between visits; FieldICS then asks for it again after a restart.
 - Damage levels follow the FEMA damage assessment guidance, but the assessor decides. Counts are for the initial assessment and the 209, not a joint preliminary damage assessment.
+- HICS forms follow the 2014 HICS forms. The starter Job Action Sheets are written for FieldICS from the HICS position descriptions; replace them with your hospital's own. FieldICS is not a HIPAA compliance program: the hospital decides who uses it, on which devices, and how records are kept.
 - Close-out marks an incident read only in FieldICS. It is not a records retention system; keep the archive under your retention schedule.
 - Times come from each device's clock.
 - QR transfer leaves photos out and works best indoors with both screens bright. Very large incidents need a package file.
@@ -130,6 +133,7 @@ A local Wi-Fi hub for phones to share with no internet, and cloud sync through a
     js/checks.js        readiness checks
     js/assess.js        damage assessment counts, the damage inventory, volunteer hours
     js/practice.js      the practice incident
+    js/hics-jas.js      the starter HICS Job Action Sheets
     js/setup.js         locality setup files, CSV lists, rate schedules
     js/xlsx.js          Excel workbook writer (no outside library)
     js/costbook.js      the PA cost workbook and the all-costs CSV
@@ -155,9 +159,9 @@ Tests:
     npm test                 rule tests in Node, no browser needed
     npx playwright-core install chromium   (or set CHROMIUM_PATH to an installed Chrome)
     npm run test:e2e         the browser tests: devices sharing, conflicts, printing, offline, and every 0.3 and 0.4 feature
-    npm run test:webkit      the 0.4 browser test in WebKit (npx playwright-core install webkit first)
+    npm run test:webkit      the 0.4 and HICS browser tests in WebKit (npx playwright-core install webkit first)
 
-The browser tests write screenshots, PDFs, and package files to `tests/e2e-output`, `tests/e2e-v3-output`, and `tests/e2e-v4-output`. `.github/workflows/test.yml` runs all of it on GitHub for every push and keeps that output for 14 days.
+The browser tests write screenshots, PDFs, and package files to `tests/e2e-output`, `tests/e2e-v3-output`, `tests/e2e-v4-output`, and `tests/e2e-hics-output`. `.github/workflows/test.yml` runs all of it on GitHub for every push and keeps that output for 14 days.
 
 When you change any app file, change `CACHE` in `sw.js` (for example to `field-ics-v4-2`) so installed copies pick up the update.
 

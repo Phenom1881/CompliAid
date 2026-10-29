@@ -420,12 +420,16 @@
           hcell('3. Resource request number', data.number)
         ]);
       default:
+        if (FORMS[type] && FORMS[type].hics && FORMS[type].scope === 'period') {
+          return headerTable([hcell('1. Incident name', incidentName(ctx, true)), hcell('2. Operational period', periodText(p, ctx))]);
+        }
+        if (FORMS[type] && FORMS[type].hics) return headerTable([hcell('1. Incident name', incidentName(ctx, true))]);
         return headerTable([hcell('Incident', incidentName(ctx, true))]);
     }
   }
 
   function footer(def, opts, ctx, pageNo, pages) {
-    var parts = [def.code];
+    var parts = [codeFor(def, ctx)];
     if (opts.iapPage) parts.push('IAP page ' + opts.iapPage);
     if (pages > 1) parts.push('Page ' + pageNo + ' of ' + pages);
     var box = h('div', { class: 'p-foot' });
@@ -445,9 +449,15 @@
     return box;
   }
 
-  function titleText(def) {
-    if (!/^ICS /.test(def.code)) return def.title.toUpperCase();
-    return def.title.toUpperCase() + ' (' + def.code + ')';
+  /* A hospital incident prints the shared forms (213) under their HICS numbers. */
+  function codeFor(def, ctx) {
+    return ctx && ctx.incident && ctx.incident.hics && /^ICS /.test(def.code) ? 'H' + def.code : def.code;
+  }
+
+  function titleText(def, ctx) {
+    var code = codeFor(def, ctx);
+    if (!/^H?ICS /.test(code) || code === 'HICS IAP Quick Start') return def.title.toUpperCase();
+    return def.title.toUpperCase() + ' (' + code + ')';
   }
 
   /*
@@ -468,7 +478,7 @@
       pageNos.sort();
       pageNos.forEach(function (pn, i) {
         var one = page(ctx, i > 0 ? 'p-break' : '');
-        one.appendChild(h('div', { class: 'p-title', text: titleText(def) }));
+        one.appendChild(h('div', { class: 'p-title', text: titleText(def, ctx) }));
         one.appendChild(headerFor(type, data, ctx, opts));
         body.filter(function (b) { return (b.page || 1) === pn; }).forEach(function (b) {
           one.appendChild(renderBlock(b, data, ctx));
@@ -481,7 +491,7 @@
     }
 
     var pg = page(ctx);
-    pg.appendChild(h('div', { class: 'p-title', text: titleText(def) }));
+    pg.appendChild(h('div', { class: 'p-title', text: titleText(def, ctx) }));
     pg.appendChild(headerFor(type, data, ctx, opts));
 
     if (def.twoColumn) {
@@ -530,7 +540,7 @@
   function log214(ctx, opts) {
     var doc = h('section', { class: 'p-doc' });
     var pg = page(ctx);
-    pg.appendChild(h('div', { class: 'p-title', text: 'ACTIVITY LOG (ICS 214)' }));
+    pg.appendChild(h('div', { class: 'p-title', text: ctx.incident && ctx.incident.hics ? 'ACTIVITY LOG (HICS 214)' : 'ACTIVITY LOG (ICS 214)' }));
     var list = opts.entries;
     var rangeText;
     if (opts.period) {
@@ -1237,8 +1247,95 @@
     return doc;
   }
 
+  /*
+   * HICS 207 Hospital Incident Management Team chart, drawn from the HICS 203.
+   * d: the HICS 203's data. opts: { period, iapPage, versionText }
+   */
+  function hics207(ctx, d, opts) {
+    opts = opts || {};
+    var doc = h('section', { class: 'p-doc p-wide' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'HOSPITAL INCIDENT MANAGEMENT TEAM (HIMT) CHART (HICS 207)' }));
+    pg.appendChild(headerTable([hcell('1. Incident name', incidentName(ctx, true)), hcell('2. Operational period', periodText(opts.period, ctx))]));
+    function box(label, value, cls) {
+      return h('div', { class: 'p-org-box' + (cls ? ' ' + cls : '') }, h('span', { class: 'p-lbl', text: label }), h('span', { class: 'p-val', text: value || NBSP }));
+    }
+    function v(prefix, key) { return d[prefix + key + 'Name'] || ''; }
+    function others(list) {
+      return (list || []).filter(function (x) { return x.position || x.name; }).map(function (x) { return box(x.position || 'Position', x.name, 'p-org-sub p-org-unit'); });
+    }
+    function column(chief, items) {
+      var col = h('div', { class: 'p-org-col' });
+      col.appendChild(chief);
+      items.forEach(function (x) { if (x) col.appendChild(x); });
+      return col;
+    }
+    var mts = ['MTS1', 'MTS2', 'MTS3', 'MTS4'].map(function (k) { return v('cmd', k); }).filter(Boolean).join('\n');
+    var chart = h('div', { class: 'p-org p-org-207' });
+    chart.appendChild(h('div', { class: 'p-org-row p-org-top' }, box('Incident Commander', v('cmd', 'IC'))));
+    chart.appendChild(h('div', { class: 'p-org-row p-org-staff' },
+      box('Public Information Officer', v('cmd', 'PIO')), box('Liaison Officer', v('cmd', 'LO')), box('Safety Officer', v('cmd', 'SO')),
+      box('Medical-Technical Specialists', mts)));
+    var cmdOther = others(d.cmdOther);
+    if (cmdOther.length) chart.appendChild(h('div', { class: 'p-org-row p-org-staff' }, cmdOther));
+    var ops = [['Stage', 'Staging Manager'], ['MedCare', 'Medical Care Branch'], ['Infra', 'Infrastructure Branch'], ['Sec', 'Security Branch'],
+      ['Haz', 'HazMat Branch'], ['BizCon', 'Business Continuity Branch'], ['PFA', 'Patient Family Assistance Branch']].map(function (x) { return box(x[1], v('ops', x[0]), 'p-org-sub'); });
+    var plan = [['Res', 'Resources Unit'], ['Sit', 'Situation Unit'], ['Doc', 'Documentation Unit'], ['Demob', 'Demobilization Unit']].map(function (x) { return box(x[1], v('plan', x[0]), 'p-org-sub'); });
+    var log = [['Svc', 'Service Branch'], ['Sup', 'Support Branch']].map(function (x) { return box(x[1], v('log', x[0]), 'p-org-sub'); });
+    var fin = [['Time', 'Time Unit'], ['Proc', 'Procurement Unit'], ['Comp', 'Compensation/Claims Unit'], ['Cost', 'Cost Unit']].map(function (x) { return box(x[1], v('fin', x[0]), 'p-org-sub'); });
+    chart.appendChild(h('div', { class: 'p-org-row p-org-sections' },
+      column(box('Operations Section Chief', v('ops', 'Chief')), ops.concat(others(d.opsOther))),
+      column(box('Planning Section Chief', v('plan', 'Chief')), plan.concat(others(d.planOther))),
+      column(box('Logistics Section Chief', v('log', 'Chief')), log.concat(others(d.logOther))),
+      column(box('Finance/Administration Section Chief', v('fin', 'Chief')), fin.concat(others(d.finOther)))));
+    pg.appendChild(blockBox('3. Hospital Incident Management Team', h('div', { class: 'p-bb' }, chart)));
+    pg.appendChild(footer({ code: 'HICS 207' }, { iapPage: opts.iapPage, versionText: 'Drawn from the HICS 203.' + (opts.versionText ? ' ' + opts.versionText : '') }, ctx, 1, 1));
+    doc.appendChild(pg);
+    return doc;
+  }
+
+  /*
+   * A HICS Job Action Sheet. sheet: { position, section, reportsTo, mission, phases }.
+   * rec: the saved progress ({ name, startedAt, done: [{ item, at, by }] }) or null for a blank sheet.
+   * phases: [[key, label]].
+   */
+  function jasSheet(ctx, sheet, rec, phases) {
+    var doc = h('section', { class: 'p-doc' });
+    var pg = page(ctx);
+    pg.appendChild(h('div', { class: 'p-title', text: 'JOB ACTION SHEET: ' + sheet.position.toUpperCase() }));
+    var d = rec || {};
+    pg.appendChild(headerTable([hcell('Incident', rec ? incidentName(ctx, true) : ''), hcell('Assigned to', d.name || ''), hcell('Date/time started', d.startedAt ? ctx.fmt.dt(d.startedAt) : '')]));
+    var top = h('div', { class: 'p-bb' });
+    top.appendChild(kvTable([
+      { label: 'Mission', value: sheet.mission }, { label: 'Section', value: sheet.section },
+      { label: 'Reports to', value: d.reportsTo || sheet.reportsTo }, { label: 'Command location', value: d.location || '' },
+      { label: 'Telephone/radio', value: d.contact || '' }, { label: '', value: '' }
+    ], 2));
+    pg.appendChild(blockBox('Position', top));
+    var done = new Map();
+    (d.done || []).forEach(function (x) { if (x && x.item) done.set(x.item, x); });
+    phases.forEach(function (p) {
+      var items = sheet.phases[p[0]] || [];
+      if (!items.length) return;
+      var rows = items.map(function (text) {
+        var x = done.get(text);
+        return { cells: [x ? '[X]' : '[  ]', text, x && x.at ? ctx.fmt.dt(x.at) : '', x ? x.by || '' : ''] };
+      });
+      pg.appendChild(blockBox(p[1], h('div', { class: 'p-bb' }, costTable(['Done', 'Action', 'Time', 'By'], rows, 99))));
+    });
+    if (d.notes) pg.appendChild(blockBox('Notes', h('div', { class: 'p-bb p-text', text: d.notes })));
+    var foot = h('div', { class: 'p-foot' });
+    foot.appendChild(h('div', { class: 'p-foot-main', text: 'HICS Job Action Sheet' }));
+    foot.appendChild(h('div', { class: 'p-audit', text: 'Printed ' + ctx.fmt.dt(ctx.printedAt) + ' from ' + (ctx.appName || 'FieldICS') + '. Adapt every Job Action Sheet to your hospital\'s emergency operations plan.' }));
+    pg.appendChild(foot);
+    doc.appendChild(pg);
+    return doc;
+  }
+
   root.FieldPrint = {
     form: form,
+    hics207: hics207,
+    jasSheet: jasSheet,
     chart207: chart207,
     damageSummary: damageSummary,
     volunteerSheet: volunteerSheet,

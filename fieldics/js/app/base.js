@@ -19,7 +19,8 @@
   var MAX_IMPORT_BYTES = 300 * 1024 * 1024;
   var ID_PART = /^[A-Za-z0-9-]{2,80}$/;
   var ROUTE_NAMES = ['log', 'notes', '201', '202', '203', '204', '205', '205a', '206', '208', '209', '211', '213', '213rr',
-    '215', '215a', '221', 'volunteers', 'damage', 'costs', 'share'];
+    '215', '215a', '221', 'volunteers', 'damage', 'costs', 'share',
+    'hqs', 'h200', 'h201', 'h202', 'h203', 'h204', 'h205a', 'h206', 'h215a', 'h221', 'h251', 'h252', 'h253', 'h254', 'h255', 'h256', 'h257', 'h258', 'h259', 'h260', 'jas'];
 
   /* Navigation, grouped the way ICS sections work. code is the form number shown beside the name. */
   var NAV = [
@@ -45,6 +46,42 @@
     { r: 'costs', group: 'Finance', code: 'PA', label: 'Costs', types: COST_TYPES },
     { r: 'share', group: 'Output', code: '', label: 'Share and print', types: [] }
   ];
+
+  /* A hospital incident runs on the Hospital Incident Command System (HICS) forms. */
+  var HICS_NAV = [
+    { r: 'log', group: 'Activity', code: '214', label: 'Activity log', types: [] },
+    { r: 'notes', group: 'Activity', code: '', label: 'Notes', types: ['note'] },
+    { r: 'jas', group: 'Activity', code: 'JAS', label: 'Job Action Sheets', types: ['jas'] },
+    { r: 'hqs', group: 'Command', code: 'QS', label: 'IAP Quick Start', types: ['hqs'] },
+    { r: 'h201', group: 'Command', code: '201', label: 'Incident briefing', types: ['h201'] },
+    { r: 'h202', group: 'Command', code: '202', label: 'Objectives', types: ['h202'] },
+    { r: 'h203', group: 'Command', code: '203', label: 'Organization', types: ['h203'] },
+    { r: 'h204', group: 'Command', code: '204', label: 'Assignments', types: ['h204'] },
+    { r: 'h205a', group: 'Command', code: '205A', label: 'Communications list', types: ['h205a'] },
+    { r: 'h206', group: 'Command', code: '206', label: 'Staff medical plan', types: ['h206'] },
+    { r: 'h215a', group: 'Command', code: '215A', label: 'Safety analysis', types: ['h215a'] },
+    { r: 'h200', group: 'Command', code: '200', label: 'IAP cover sheet', types: ['h200'] },
+    { r: 'h254', group: 'Patients', code: '254', label: 'Patient tracking', types: ['h254'] },
+    { r: 'h259', group: 'Patients', code: '259', label: 'Casualty report', types: ['h259'] },
+    { r: 'h255', group: 'Patients', code: '255', label: 'Evacuation master', types: ['h255'] },
+    { r: 'h260', group: 'Patients', code: '260', label: 'Evacuation transfer', types: ['h260'] },
+    { r: 'h251', group: 'Facility and resources', code: '251', label: 'Facility status', types: ['h251'] },
+    { r: 'h258', group: 'Facility and resources', code: '258', label: 'Resource directory', types: ['h258'] },
+    { r: 'h257', group: 'Facility and resources', code: '257', label: 'Resource accounting', types: ['h257'] },
+    { r: 'h253', group: 'Facility and resources', code: '253', label: 'Volunteer registration', types: ['h253'] },
+    { r: 'h213', group: 'Facility and resources', code: '213', label: 'Messages', types: ['213'] },
+    { r: 'h252', group: 'Finance', code: '252', label: 'Time sheets', types: ['h252'] },
+    { r: 'h256', group: 'Finance', code: '256', label: 'Procurement', types: ['h256'] },
+    { r: 'costs', group: 'Finance', code: 'PA', label: 'Costs', types: COST_TYPES },
+    { r: 'h221', group: 'Output', code: '221', label: 'Demob check-out', types: ['h221'] },
+    { r: 'share', group: 'Output', code: '', label: 'Share and print', types: [] }
+  ];
+  /* Messages use the ICS 213 record under its HICS name. */
+  HICS_NAV.forEach(function (x) { if (x.r === 'h213') x.r = '213'; });
+
+  function navFor(inc) {
+    return inc && inc.hics ? HICS_NAV : NAV;
+  }
 
   /* Screens and form tools that later modules add. views[route](inc, route) returns an element; toolsFor[type](inc, session) returns [[label, onclick]]. */
   var views = {};
@@ -297,6 +334,8 @@
   A.NAV = NAV;
   A.views = views;
   A.toolsFor = toolsFor;
+  A.HICS_NAV = HICS_NAV;
+  A.navFor = navFor;
   A.COST_NAMES = COST_NAMES;
   A.COST_ADD = COST_ADD;
   A.$ = $;

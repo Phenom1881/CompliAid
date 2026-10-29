@@ -6,8 +6,8 @@
  *  - the on-screen editor (app.js)
  *  - the printed layout (print.js)
  *
- * Block numbers and labels follow the FEMA NIMS ICS forms (ICS 201, 202, 203,
- * 204, 205, 213, 213 RR). Cost entries follow the fields on the FEMA Public
+ * Block numbers and labels follow the FEMA NIMS ICS forms (ICS 201 to 221) and,
+ * for hospitals, the HICS 2014 forms (HICS 200 to 260). Cost entries follow the fields on the FEMA Public
  * Assistance summary records for force account labor, force account equipment,
  * materials, rented equipment, and contract work.
  *
@@ -27,6 +27,7 @@
  *  signature: prints a signature line
  *  noPrint: shown in the app only
  *  photos: a photo block, printed as an appendix instead of in the form
+ *  optional: left out of the empty-block checks
  */
 (function (root, factory) {
   if (typeof module === 'object' && module.exports) {
@@ -1396,6 +1397,572 @@
     }
   };
 
+  /* ---------- Hospital Incident Command System (HICS 2014) ---------- */
+
+  /*
+   * HICS forms follow the 2014 HICS forms published by the California Emergency Medical
+   * Services Authority. Every HICS type starts with "h" so its records never mix with the
+   * ICS forms of the same number. phi: the form holds patient information (see core.js).
+   */
+  var HICS_POSITIONS = [
+    'Incident Commander', 'Public Information Officer', 'Liaison Officer', 'Safety Officer', 'Medical-Technical Specialist',
+    'Operations Section Chief', 'Staging Manager', 'Medical Care Branch Director', 'Infrastructure Branch Director',
+    'Security Branch Director', 'Hazardous Materials Branch Director', 'Business Continuity Branch Director',
+    'Patient Family Assistance Branch Director', 'Inpatient Unit Leader', 'Outpatient Unit Leader', 'Casualty Care Unit Leader',
+    'Behavioral Health Unit Leader', 'Clinical Support Services Unit Leader', 'Patient Registration Unit Leader',
+    'Power/Lighting Unit Leader', 'Water/Sewer Unit Leader', 'HVAC Unit Leader', 'Building/Grounds Damage Unit Leader',
+    'Medical Gases Unit Leader', 'Medical Devices Unit Leader', 'Environmental Services Unit Leader', 'Food Services Unit Leader',
+    'Access Control Unit Leader', 'Crowd Control Unit Leader', 'Traffic Control Unit Leader', 'Search Unit Leader',
+    'Law Enforcement Interface Unit Leader', 'Detection and Monitoring Unit Leader', 'Spill Response Unit Leader',
+    'Victim Decontamination Unit Leader', 'Facility/Equipment Decontamination Unit Leader',
+    'IT Systems and Applications Unit Leader', 'Services Continuity Unit Leader', 'Records Management Unit Leader',
+    'Business Function Relocation Unit Leader', 'Social Services Unit Leader', 'Family Reunification Unit Leader',
+    'Planning Section Chief', 'Resources Unit Leader', 'Personnel Tracking Manager', 'Materiel Tracking Manager',
+    'Situation Unit Leader', 'Patient Tracking Manager', 'Bed Tracking Manager', 'Documentation Unit Leader',
+    'Demobilization Unit Leader', 'Logistics Section Chief', 'Service Branch Director', 'Communications Unit Leader',
+    'IT/IS Equipment Unit Leader', 'Staff Food and Water Unit Leader', 'Support Branch Director',
+    'Employee Health and Well-Being Unit Leader', 'Family Care Unit Leader', 'Supply Unit Leader', 'Facilities Unit Leader',
+    'Transportation Unit Leader', 'Labor Pool and Credentialing Unit Leader', 'Finance/Administration Section Chief',
+    'Time Unit Leader', 'Procurement Unit Leader', 'Compensation/Claims Unit Leader', 'Cost Unit Leader', 'Scribe'
+  ];
+
+  function hApproved(n, who) {
+    return { n: n, title: 'Approved by (' + who + ')', signature: true, fields: [text('approvedName', 'Name', { list: 'people' }), when('approvedAt', 'Date/time')] };
+  }
+
+  function hPrepared(n, who) {
+    return prepared(n, who ? { title: 'Prepared by (' + who + ')' } : null);
+  }
+
+  /* A table of named positions, each with a name and contact (HICS 201 and 203). */
+  function hPositions(prefix, list, withContact) {
+    var cols = [['Name', 'Name', 'text', 120]];
+    if (withContact) cols.push(['Contact', 'Contact info (phone, cell, radio)', 'text', 160]);
+    return matrix(prefix, list, cols);
+  }
+
+  function hOthers(k, label) {
+    return rows(k, label, [
+      text('position', 'Position', { list: 'ics-positions' }),
+      text('name', 'Name', { list: 'people' }),
+      text('contact', 'Contact info (phone, cell, radio)', { max: 160 })
+    ], { addLabel: 'Add position', rowLabel: 'Position', hideLabel: true, printMin: 2 });
+  }
+
+  /* A system status table on the HICS 251: a status and comments for each system. */
+  var STATUS_251 = ['Fully functional', 'Partially functional', 'Nonfunctional', 'N/A'];
+  function statusMatrix(prefix, list) {
+    var fields = [];
+    list.forEach(function (r) {
+      fields.push(choice(prefix + r[0] + 'Status', r[1] + ': status', STATUS_251));
+      fields.push(text(prefix + r[0] + 'Note', r[1] + ': comments', { max: 300 }));
+    });
+    return { fields: fields, matrix: { prefix: prefix, rows: list, cols: [['Status', 'Status'], ['Note', 'Comments (location, cause, repair estimate)']] } };
+  }
+
+  var SECTIONS_HICS = ['Command', 'Operations', 'Planning', 'Logistics', 'Finance/Administration'];
+  var BRANCHES_HICS = ['Staging', 'Medical Care Branch', 'Infrastructure Branch', 'Security Branch', 'HazMat Branch',
+    'Business Continuity Branch', 'Patient Family Assistance Branch', 'Service Branch', 'Support Branch'];
+
+  var HICS = {
+    hqs: {
+      type: 'hqs', group: 'form', scope: 'period', hics: true,
+      code: 'HICS IAP Quick Start',
+      title: 'Incident Action Plan (IAP) Quick Start',
+      resetOnCopy: ['prepName', 'prepPosition', 'prepAt'],
+      blocks: [
+        { n: '3', title: 'Situation summary', fields: [area('situation', 'Situation summary', { rows: 5, hideLabel: true, max: 6000 })] },
+        {
+          n: '4', title: 'Current Hospital Incident Management Team (HIMT)',
+          fields: [rows('himt', 'Current HIMT', [text('position', 'Position', { list: 'ics-positions' }), text('name', 'Name', { list: 'people' })],
+            { addLabel: 'Add position', rowLabel: 'Position', hideLabel: true, printMin: 8 })]
+        },
+        { n: '5', title: 'Health and safety briefing', fields: [area('safety', 'Health and safety briefing', { rows: 4, hideLabel: true })] },
+        {
+          n: '6', title: 'Incident objectives',
+          fields: [rows('objectives', 'Incident objectives', [
+            area('objective', '6a. Objective', { rows: 2, max: 1000 }),
+            area('strategies', '6b. Strategies/tactics', { rows: 2, max: 2000 }),
+            text('resources', '6c. Resources required', { max: 600 }),
+            text('assigned', '6d. Assigned to', { list: 'people', max: 160 })
+          ], { addLabel: 'Add objective', rowLabel: 'Objective', hideLabel: true, printMin: 4 })]
+        },
+        hPrepared('7')
+      ]
+    },
+
+    h200: {
+      type: 'h200', group: 'form', scope: 'period', hics: true,
+      code: 'HICS 200', title: 'Incident Action Plan (IAP) Cover Sheet',
+      resetOnCopy: ['prepName', 'prepPosition', 'prepAt', 'approvedName', 'approvedAt'],
+      blocks: [
+        {
+          n: '3', title: 'Attachments',
+          fields: [
+            checks('attachments', 'Attachments', ['IAP Quick Start', 'HICS 201', 'HICS 202', 'HICS 203', 'HICS 204', 'HICS 205A', 'HICS 206', 'HICS 207', 'HICS 215A', 'Map/Chart', 'Weather report'], { hideLabel: true }),
+            text('otherAttachments', 'Other attachments', { max: 400 })
+          ]
+        },
+        hPrepared('4', 'Planning Section Chief'),
+        hApproved('5', 'Incident Commander')
+      ]
+    },
+
+    h201: {
+      type: 'h201', group: 'form', scope: 'incident', hics: true,
+      code: 'HICS 201', title: 'Incident Briefing',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        { n: '3', title: 'Situation summary', fields: [area('situation', 'Situation summary', { rows: 5, hideLabel: true, max: 6000 })] },
+        { n: '4', title: 'Health and safety briefing', fields: [area('safety', 'Health and safety briefing', { rows: 4, hideLabel: true })] },
+        { n: '5', title: 'Map/sketch', fields: [image('map', 'Map or sketch', { hideLabel: true })] },
+        extend({ n: '6', title: 'Current Hospital Incident Management Team (HIMT)' }, hPositions('himt', [
+          ['IC', 'Incident Commander'], ['PIO', 'Public Information Officer'], ['LO', 'Liaison Officer'], ['SO', 'Safety Officer'],
+          ['MTS', 'Medical-Technical Specialist(s)'], ['Ops', 'Operations Section Chief'], ['Stage', 'Staging Manager'],
+          ['MedCare', 'Medical Care Branch Director'], ['Infra', 'Infrastructure Branch Director'], ['Sec', 'Security Branch Director'],
+          ['Haz', 'HazMat Branch Director'], ['BizCon', 'Business Continuity Branch Director'], ['PFA', 'Patient Family Assistance Branch Director'],
+          ['Plan', 'Planning Section Chief'], ['Res', 'Resources Unit Leader'], ['Sit', 'Situation Unit Leader'],
+          ['Doc', 'Documentation Unit Leader'], ['Demob', 'Demobilization Unit Leader'], ['Log', 'Logistics Section Chief'],
+          ['Svc', 'Service Branch Director'], ['Sup', 'Support Branch Director'], ['Fin', 'Finance/Administration Section Chief'],
+          ['Time', 'Time Unit Leader'], ['Proc', 'Procurement Unit Leader'], ['Comp', 'Compensation/Claims Unit Leader'], ['Cost', 'Cost Unit Leader']
+        ], false)),
+        { n: '7', title: 'Incident objectives', fields: [area('objectives', 'Incident objectives', { rows: 4, hideLabel: true })] },
+        {
+          n: '8', title: 'Summary of current and planned actions',
+          fields: [rows('actions', 'Actions', [text('time', 'Time', { max: 20 }), text('action', 'Action', { max: 600 })], { addLabel: 'Add action', rowLabel: 'Action', hideLabel: true, printMin: 6 })]
+        },
+        {
+          n: '9', title: 'Summary of resources requested and assigned',
+          fields: [rows('resources', 'Resources', [
+            text('resource', 'Resource'), when('ordered', 'Date/time ordered'), text('eta', 'ETA', { max: 40 }),
+            when('arrived', 'Date/time arrived'), text('notes', 'Notes (location/assignment/status)', { max: 300 })
+          ], { addLabel: 'Add resource', rowLabel: 'Resource', hideLabel: true, printMin: 5 })]
+        },
+        hPrepared('10', 'Incident Commander')
+      ]
+    },
+
+    h202: {
+      type: 'h202', group: 'form', scope: 'period', hics: true, iap: 2,
+      code: 'HICS 202', title: 'Incident Objectives',
+      resetOnCopy: ['prepName', 'prepPosition', 'prepAt', 'approvedName', 'approvedAt'],
+      blocks: [
+        { n: '3', title: 'Incident objectives', fields: [area('objectives', 'Incident objectives', { rows: 6, hideLabel: true, required: true })] },
+        { n: '4', title: 'Factors to consider', note: 'Weather, staffing, supplies, patient census, and anything else that shapes this period.', fields: [area('factors', 'Factors to consider', { rows: 4, hideLabel: true })] },
+        {
+          n: '5', title: 'HICS 215A or site safety plan required?',
+          fields: [choice('sspRequired', 'Required?', ['Yes', 'No']), text('sspLocation', 'Approved site safety plan(s) located at')]
+        },
+        hPrepared('6', 'Planning Section Chief'),
+        hApproved('7', 'Incident Commander')
+      ]
+    },
+
+    h203: {
+      type: 'h203', group: 'form', scope: 'period', hics: true, iap: 3,
+      code: 'HICS 203', title: 'Organization Assignment List',
+      blocks: [
+        extend({ n: '3', title: 'Incident Commander(s) and Command Staff' }, hPositions('cmd', [['IC', 'Incident Commander'], ['PIO', 'Public Information Officer'], ['LO', 'Liaison Officer'], ['SO', 'Safety Officer'],
+            ['MTS1', 'Medical-Technical Specialist'], ['MTS2', 'Medical-Technical Specialist'], ['MTS3', 'Medical-Technical Specialist'], ['MTS4', 'Medical-Technical Specialist']], true)),
+        { title: 'Other command positions', optional: true, fields: [hOthers('cmdOther', 'Other command positions')] },
+        extend({ n: '4', title: 'Operations Section' }, hPositions('ops', [['Chief', 'Operations Section Chief'], ['Stage', 'Staging Manager'], ['MedCare', 'Medical Care Branch Director'],
+            ['Infra', 'Infrastructure Branch Director'], ['Sec', 'Security Branch Director'], ['Haz', 'Hazardous Materials Branch Director'],
+            ['BizCon', 'Business Continuity Branch Director'], ['PFA', 'Patient Family Assistance Branch Director']], true)),
+        { title: 'Other Operations positions', optional: true, fields: [hOthers('opsOther', 'Other Operations positions')] },
+        extend({ n: '5', title: 'Planning Section' }, hPositions('plan', [['Chief', 'Planning Section Chief'], ['Res', 'Resources Unit Leader'], ['Sit', 'Situation Unit Leader'],
+            ['Doc', 'Documentation Unit Leader'], ['Demob', 'Demobilization Unit Leader']], true)),
+        { title: 'Other Planning positions', optional: true, fields: [hOthers('planOther', 'Other Planning positions')] },
+        extend({ n: '6', title: 'Logistics Section' }, hPositions('log', [['Chief', 'Logistics Section Chief'], ['Svc', 'Service Branch Director'], ['Sup', 'Support Branch Director']], true)),
+        { title: 'Other Logistics positions', optional: true, fields: [hOthers('logOther', 'Other Logistics positions')] },
+        extend({ n: '7', title: 'Finance/Administration Section' }, hPositions('fin', [['Chief', 'Finance/Administration Section Chief'], ['Time', 'Time Unit Leader'], ['Proc', 'Procurement Unit Leader'],
+            ['Comp', 'Compensation/Claims Unit Leader'], ['Cost', 'Cost Unit Leader']], true)),
+        { title: 'Other Finance/Administration positions', optional: true, fields: [hOthers('finOther', 'Other Finance/Administration positions')] },
+        { n: '8', title: 'Agency Executive', fields: [text('execName', 'Name', { list: 'people' }), text('execContact', 'Contact info', { max: 160 })] },
+        {
+          n: '9', title: 'External Agency Representative',
+          fields: [rows('extReps', 'External agency representatives', [text('agency', 'Agency'), text('name', 'Name', { list: 'people' }), text('contact', 'Contact info', { max: 160 })],
+            { addLabel: 'Add representative', rowLabel: 'Representative', hideLabel: true, printMin: 2 })]
+        },
+        { n: '10', title: 'Hospital Representative (to external agencies)', fields: [text('hospRepName', 'Name', { list: 'people' }), text('hospRepTo', 'Assigned to (agency or EOC)'), text('hospRepContact', 'Contact info', { max: 160 })] },
+        hPrepared('11')
+      ]
+    },
+
+    h204: {
+      type: 'h204', group: 'form', scope: 'period-many', hics: true, iap: 4,
+      code: 'HICS 204', title: 'Assignment List',
+      blocks: [
+        { n: '3', title: 'Section', w: 'half', fields: [choice('section', 'Section', SECTIONS_HICS.slice(1), { hideLabel: true, required: true })] },
+        { n: '4', title: 'Branch (if applicable)', w: 'half', fields: [choice('branch', 'Branch', BRANCHES_HICS, { hideLabel: true })] },
+        {
+          n: '5', title: 'Branch/unit objectives, strategies, resources, and assignment',
+          fields: [rows('lines', 'Objectives and assignments', [
+            area('objective', '5a. Branch/unit related objectives', { rows: 2, max: 1000 }),
+            area('strategies', '5b. Strategies/tactics', { rows: 2, max: 2000 }),
+            text('resources', '5c. Resources required', { max: 600 }),
+            text('unit', '5d. Unit assigned to', { max: 160 })
+          ], { addLabel: 'Add objective', rowLabel: 'Objective', hideLabel: true, printMin: 4 })]
+        },
+        {
+          n: '6', title: 'Unit(s) assigned this operational period',
+          fields: [rows('units', 'Units assigned', [
+            text('unit', 'Unit name'), text('leader', 'Leader name', { list: 'people' }), text('location', 'Unit location'), area('members', 'Unit members/teams', { rows: 2, max: 1000 })
+          ], { addLabel: 'Add unit', rowLabel: 'Unit', hideLabel: true, printMin: 2 })]
+        },
+        { n: '7', title: 'Special information/considerations', fields: [area('special', 'Special information', { rows: 3, hideLabel: true })] },
+        hPrepared('8')
+      ]
+    },
+
+    h205a: {
+      type: 'h205a', group: 'form', scope: 'period', hics: true, iap: 5,
+      code: 'HICS 205A', title: 'Communications List',
+      blocks: [
+        {
+          n: '3', title: 'Internal contacts',
+          fields: [rows('internal', 'Internal contacts', [
+            text('name', 'Assignment/name', { list: 'people', max: 160 }), text('radio', 'Radio ch #/frequency', { max: 60 }), text('phone', 'Phone', { max: 40 }),
+            text('fax', 'Fax', { max: 40 }), text('email', 'Email', { max: 160 }), text('mobile', 'Mobile phone', { max: 40 }), text('pager', 'Pager', { max: 40 }),
+            text('device', 'Device ID number/comments', { max: 160 })
+          ], { addLabel: 'Add internal contact', rowLabel: 'Contact', hideLabel: true, printMin: 8, printSort: 'name' })]
+        },
+        { n: '4', title: 'Special instructions', fields: [area('internalNote', 'Special instructions', { rows: 2, hideLabel: true })] },
+        {
+          n: '5', title: 'External contacts',
+          fields: [rows('external', 'External contacts', [
+            text('name', 'Agency/assignment/name', { max: 160 }), text('radio', 'Radio ch #/frequency', { max: 60 }), text('phone', 'Telephone', { max: 40 }),
+            text('fax', 'Fax', { max: 40 }), text('email', 'Email', { max: 160 }), text('mobile', 'Mobile phone', { max: 40 }), text('pager', 'Pager', { max: 40 }),
+            text('device', 'Device ID number/comments', { max: 160 })
+          ], { addLabel: 'Add external contact', rowLabel: 'Contact', hideLabel: true, printMin: 6, printSort: 'name' })]
+        },
+        { n: '6', title: 'Special instructions', fields: [area('externalNote', 'Special instructions', { rows: 2, hideLabel: true })] },
+        hPrepared('7', 'Communications Unit Leader')
+      ]
+    },
+
+    h206: {
+      type: 'h206', group: 'form', scope: 'period', hics: true, iap: 6,
+      code: 'HICS 206', title: 'Staff Medical Plan',
+      blocks: [
+        {
+          n: '3', title: 'Treatment areas',
+          fields: [rows('areas', 'Treatment areas', [text('name', 'Area name'), text('location', 'Location'), text('leader', 'Unit/team leader', { list: 'people' }), text('contact', 'Contact number/channel', { max: 80 })],
+            { addLabel: 'Add treatment area', rowLabel: 'Area', hideLabel: true, printMin: 3 })]
+        },
+        {
+          n: '4', title: 'Resources on hand (numbers)',
+          fields: [whole('staff', 'Staff', { max: 100000 }), whole('devices', 'Transportation devices', { max: 100000 }), text('medication', 'Medication', { max: 300 }), text('supplies', 'Supplies', { max: 300 })]
+        },
+        {
+          n: '5', title: 'Transportation (indicate air or ground)',
+          fields: [rows('transport', 'Transportation', [
+            choice('mode', 'Type', ['Ambulance', 'Bus', 'Van', 'Private vehicle', 'Air']), text('location', 'Location'), text('contact', 'Contact number/frequency', { max: 80 }), choice('level', 'Level of service', ['ALS', 'BLS'])
+          ], { addLabel: 'Add transportation', rowLabel: 'Transportation', hideLabel: true, printMin: 3 })]
+        },
+        {
+          n: '6', title: 'Alternate care site(s)',
+          fields: [rows('sites', 'Alternate care sites', [text('name', 'Facility name'), text('address', 'Address', { max: 300 }), text('contact', 'Contact number/frequency', { max: 80 }), text('specialty', 'Specialty care (specify)')],
+            { addLabel: 'Add site', rowLabel: 'Site', hideLabel: true, printMin: 2 })]
+        },
+        { n: '7', title: 'Special instructions', fields: [area('special', 'Special instructions', { rows: 3, hideLabel: true })] },
+        hPrepared('8'),
+        hApproved('9', 'Safety Officer')
+      ]
+    },
+
+    h215a: {
+      type: 'h215a', group: 'form', scope: 'period', hics: true, iap: 8,
+      code: 'HICS 215A', title: 'Incident Action Plan (IAP) Safety Analysis',
+      blocks: [
+        {
+          n: '3', title: 'Hazard mitigation',
+          fields: [rows('hazards', 'Hazard mitigation', [
+            area('hazard', '3a. Potential/actual hazards', { rows: 2, max: 1000 }),
+            text('affected', '3b. Affected section/branch/unit and location', { max: 300 }),
+            area('mitigations', '3c. Mitigations', { rows: 2, max: 1000 }),
+            text('completed', '3d. Mitigation completed (initials, date/time)', { max: 80 })
+          ], { addLabel: 'Add hazard', rowLabel: 'Hazard', hideLabel: true, printMin: 5 })]
+        },
+        hPrepared('4', 'Safety Officer'),
+        hApproved('5', 'Incident Commander')
+      ]
+    },
+
+    h221: {
+      type: 'h221', group: 'form', scope: 'many', hics: true,
+      code: 'HICS 221', title: 'Demobilization Check-Out',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Section demobilization checks',
+          note: 'Choose the section or position, then "Fill the checklist" adds the HICS checks for it. Initial each one as it is done.',
+          fields: [
+            choice('section', 'Section or position', ['Command Staff', 'Operations Section', 'Planning Section', 'Logistics Section', 'Finance/Administration Section', 'All positions'], { required: true }),
+            text('position', 'Position demobilizing', { list: 'ics-positions' }),
+            text('name', 'Name', { list: 'people' }),
+            rows('checks', 'Checks', [text('item', 'Check', { max: 300 }), text('remarks', 'Remarks', { max: 300 }), text('initials', 'Initials', { max: 12 })],
+              { addLabel: 'Add check', rowLabel: 'Check', hideLabel: true, printMin: 6, maxRows: 60 })
+          ]
+        },
+        hPrepared('4')
+      ]
+    },
+
+    h251: {
+      type: 'h251', group: 'form', scope: 'many', hics: true,
+      code: 'HICS 251', title: 'Facility System Status Report',
+      blocks: [
+        { n: '2', title: 'Time completed', w: 'half', fields: [when('reportAt', 'Date/time', { def: 'now', hideLabel: true })] },
+        { n: '3', title: 'Facility, building, or unit reporting', w: 'half', fields: [text('facility', 'Facility/building/unit', { required: true, hideLabel: true }), text('contact', 'Contact number', { max: 60 })] },
+        extend({ section: 'Systems (blocks 4 to 6)', title: 'Communications' }, statusMatrix('com', [
+          ['Fax', 'Fax'], ['IT', 'Information technology (email, registration, patient records, time cards)'], ['NurseCall', 'Nurse call system'],
+          ['Overhead', 'Overhead paging'], ['Paging', 'Paging system (code teams, standard paging)'], ['RadioIn', 'Radios: facility handheld, two-way, antennas'],
+          ['RadioOut', 'Radios: EMS, local health department, other partners'], ['Ham', 'Amateur radio'], ['Sat', 'Satellite phones'],
+          ['Phone', 'Telephone system: primary, proprietary, backup'], ['Internet', 'Internet'], ['Cable', 'Video and television cable']
+        ])),
+        extend({ title: 'Infrastructure' }, statusMatrix('inf', [
+          ['Access', 'Campus access (roadways, sidewalks, bridges)'], ['FireDet', 'Fire detection system'], ['FireSup', 'Fire suppression system'],
+          ['Food', 'Food preparation equipment'], ['Ice', 'Ice machines'], ['Laundry', 'Laundry and linen equipment'],
+          ['Struct', 'Structural components (cracked walls, loose masonry, hanging fixtures, broken windows)']
+        ])),
+        extend({ title: 'Patient care' }, statusMatrix('pc', [
+          ['Decon', 'Decontamination system (including containment)'], ['Imaging', 'Digital radiography and diagnostics (PACS, CT, MRI, other)'],
+          ['Steril', 'Steam and chemical sterilizers'], ['Isolation', 'Isolation rooms (positive and negative air)']
+        ])),
+        extend({ title: 'Security' }, statusMatrix('sec', [
+          ['Lockdown', 'Facility lockdown (door and key card access)'], ['Campus', 'Campus security: panic alarms, cameras, traffic controls, lighting'],
+          ['Panic', 'Internal panic alarms and reporting devices']
+        ])),
+        extend({ title: 'Utilities' }, statusMatrix('util', [
+          ['Power', 'Electrical power: primary service'], ['Generator', 'Electrical power: backup generator'], ['Fuel', 'Fuel storage (note amount on hand)'],
+          ['Sanitation', 'Sanitation systems'], ['Water', 'Water'], ['Gas', 'Natural gas or propane'], ['Air', 'Air compressor'],
+          ['Elevators', 'Elevators and escalators'], ['HazWaste', 'Hazardous waste containment'], ['HVAC', 'Heating, ventilation, and air conditioning'],
+          ['Oxygen', 'Oxygen (note bulk, H tanks, E tanks, reserve)'], ['MedGas', 'Other medical gases (note reserve)'], ['Tube', 'Pneumatic tube'],
+          ['Steam', 'Steam boiler'], ['Sump', 'Sump pump'], ['Well', 'Well water system'], ['Vacuum', 'Vacuum (patient use)'], ['Heater', 'Water heater and circulators']
+        ])),
+        extend({ title: 'External and grounds' }, statusMatrix('ext', [
+          ['Lighting', 'External lighting'], ['StorEq', 'External storage: equipment'], ['StorVeh', 'External storage: vehicles'],
+          ['Parking', 'Parking structures and lots'], ['Landing', 'Landing zone (pads, lighting, fuel)']
+        ])),
+        { n: '7', title: 'Remarks', note: 'Facility-wide concerns and what is coming: staffing, fuel on hand, repair plans.', fields: [area('remarks', 'Remarks', { rows: 4, hideLabel: true })] },
+        hPrepared('8')
+      ]
+    },
+
+    h252: {
+      type: 'h252', group: 'form', scope: 'many', hics: true,
+      code: 'HICS 252', title: 'Section Personnel Time Sheet',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        { title: 'Section', w: 'half', fields: [choice('section', 'Section', SECTIONS_HICS, { required: true }), text('unit', 'Branch or unit', { max: 160 })] },
+        {
+          n: '3', title: 'Time record',
+          fields: [rows('people', 'Time record', [
+            choice('ev', 'Employee (E) or volunteer (V)', [['E', 'Employee'], ['V', 'Volunteer']]),
+            text('name', 'Name', { list: 'people' }), text('number', 'Employee number', { max: 40 }),
+            text('function', 'Response function', { list: 'ics-positions' }), text('assignment', 'Section/assignment', { max: 160 }),
+            when('in', 'Date/time in'), when('out', 'Date/time out'), num('hours', 'Total hours', { max: 1000 })
+          ], { addLabel: 'Add person', rowLabel: 'Person', hideLabel: true, printMin: 10, maxRows: 200 })]
+        },
+        hPrepared('4')
+      ]
+    },
+
+    h253: {
+      type: 'h253', group: 'form', scope: 'many', hics: true,
+      code: 'HICS 253', title: 'Volunteer Registration',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Registration information',
+          note: 'Check a photo ID and record its type and last four digits only. Never record a Social Security number.',
+          fields: [rows('volunteers', 'Volunteers', [
+            text('name', 'Name (last, first)'), text('license', 'Certification/license and number', { max: 120 }),
+            text('idCheck', 'ID checked (type and last 4)', { max: 40 }), text('address', 'Address (city, state, ZIP)', { max: 200 }),
+            text('contact', 'Contact (phone, cell)', { max: 80 }), text('badge', 'Badge issued (number)', { max: 40 }), flag('badgeBack', 'Badge returned'),
+            when('in', 'Time in'), when('out', 'Time out')
+          ], { addLabel: 'Add volunteer', rowLabel: 'Volunteer', hideLabel: true, printMin: 8, maxRows: 200 })]
+        },
+        hPrepared('4', 'Labor Pool and Credentialing Unit Leader')
+      ]
+    },
+
+    h254: {
+      type: 'h254', group: 'form', scope: 'many', hics: true, phi: true,
+      code: 'HICS 254', title: 'Disaster Victim/Patient Tracking',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Area',
+          fields: [
+            text('area', 'Triage or treatment area', { required: true }),
+            rows('patients', 'Patients', [
+              text('tag', 'Field tag number', { max: 40 }), text('mrn', 'Medical record number', { max: 40 }), text('name', 'Name (last, first)'),
+              choice('sex', 'Sex', [['M', 'M'], ['F', 'F'], ['U', 'Unknown']]), text('dobAge', 'DOB/age', { max: 40 }),
+              choice('triage', 'Triage category', ['Immediate', 'Delayed', 'Minor', 'Expectant', 'Expired']),
+              text('location', 'Location/time of procedures', { max: 300 }),
+              choice('disposition', 'Disposition', ['Discharge', 'Admit', 'Surgery', 'Transfer', 'Morgue']), when('dispAt', 'Disposition time')
+            ], { addLabel: 'Add patient', rowLabel: 'Patient', hideLabel: true, printMin: 10, maxRows: 300 })
+          ]
+        },
+        hPrepared('4', 'Patient Tracking Manager')
+      ]
+    },
+
+    h255: {
+      type: 'h255', group: 'form', scope: 'many', hics: true, phi: true, wide: true,
+      code: 'HICS 255', title: 'Master Patient Evacuation Tracking',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Patient evacuation information',
+          fields: [rows('patients', 'Patients', [
+            text('name', 'Patient name'), text('mrn', 'Medical record number', { max: 40 }),
+            choice('triage', 'Evacuation triage category', ['Immediate', 'Delayed', 'Minor']),
+            choice('transport', 'Mode of transport', ['CCT', 'ALS', 'BLS', 'Van', 'Bus', 'Car', 'Aircraft', 'Other']),
+            choice('disposition', 'Disposition', ['Discharge', 'Transfer', 'Morgue']), text('accepting', 'Accepting hospital or location'),
+            text('reportAt', 'Time hospital contacted and report given', { max: 40 }), text('initiated', 'Transfer initiated (time, transport company, vehicle #)', { max: 160 }),
+            choice('recordSent', 'Medical record sent', ['Yes', 'No']), choice('medsSent', 'Medication sent', ['Yes', 'No']),
+            choice('family', 'Family notified', ['Yes', 'No']), choice('arrived', 'Arrival confirmed', ['Yes', 'No']),
+            choice('admitTo', 'Admit location', ['Floor', 'ICU', 'ER', 'Morgue']), text('expired', 'Expired (time)', { max: 20 })
+          ], { addLabel: 'Add patient', rowLabel: 'Patient', hideLabel: true, printMin: 8, maxRows: 300 })]
+        },
+        hPrepared('4', 'Patient Tracking Manager')
+      ]
+    },
+
+    h256: {
+      type: 'h256', group: 'form', scope: 'many', hics: true, wide: true,
+      code: 'HICS 256', title: 'Procurement Summary Report',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Purchases',
+          fields: [rows('purchases', 'Purchases', [
+            text('po', 'P.O./reference number', { max: 60 }), when('at', 'Date/time'), text('item', 'Item/service', { max: 300 }), text('vendor', 'Vendor'),
+            money('amount', 'Dollar amount'), text('requestor', 'Requestor name/department'), text('approvedBy', 'Approved by', { list: 'people' }),
+            when('received', 'Received date/time'), text('comments', 'Comments', { max: 300 })
+          ], { addLabel: 'Add purchase', rowLabel: 'Purchase', hideLabel: true, printMin: 9, maxRows: 200 })]
+        },
+        hPrepared('4', 'Procurement Unit Leader')
+      ]
+    },
+
+    h257: {
+      type: 'h257', group: 'form', scope: 'many', hics: true, wide: true,
+      code: 'HICS 257', title: 'Resource Accounting Record',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To')] },
+        {
+          n: '3', title: 'Resource record',
+          fields: [rows('items', 'Resources', [
+            text('time', 'Time', { max: 20 }), text('item', 'Item/facility tracking ID number', { max: 160 }), text('condition', 'Condition', { max: 80 }),
+            text('from', 'Received from'), text('dispensed', 'Dispensed (to, time)', { max: 160 }), when('returned', 'Returned (date/time)'),
+            text('returnCondition', 'Condition on return (or nonrecoverable)', { max: 120 }), text('initials', 'Initials', { max: 12 })
+          ], { addLabel: 'Add resource', rowLabel: 'Resource', hideLabel: true, printMin: 10, maxRows: 300 })]
+        },
+        hPrepared('4')
+      ]
+    },
+
+    h258: {
+      type: 'h258', group: 'form', scope: 'incident', hics: true, wide: true,
+      code: 'HICS 258', title: 'Hospital Resource Directory',
+      blocks: [
+        {
+          n: '3', title: 'Contact information',
+          fields: [rows('contacts', 'Contacts', [
+            text('company', 'Company/agency'), text('name', 'Name (24/7 contact)', { max: 160 }), text('phone', 'Telephone', { max: 40 }),
+            text('alt', 'Alternate telephone', { max: 40 }), text('email', 'Email', { max: 160 }), text('fax', 'Fax', { max: 40 }), text('radio', 'Radio', { max: 60 })
+          ], { addLabel: 'Add contact', rowLabel: 'Contact', hideLabel: true, printMin: 12, maxRows: 300, printSort: 'company' })]
+        },
+        { n: '4', title: 'Date last updated', fields: [when('updatedAt', 'Date last updated', { def: 'now', hideLabel: true })] },
+        hPrepared('5', 'Resources Unit Leader')
+      ]
+    },
+
+    h259: {
+      type: 'h259', group: 'form', scope: 'many', hics: true,
+      code: 'HICS 259', title: 'Hospital Casualty/Fatality Report',
+      blocks: [
+        { n: '2', title: 'Operational period', fields: [when('from', 'From'), when('to', 'To'), when('reportAt', 'Report date/time', { def: 'now' })] },
+        extend({ n: '3', title: 'Number of casualties/fatalities', note: '"Count from HICS 254" fills this from the patient tracking forms. Pediatric means under 18.' },
+          (function () {
+            var m = matrix('cas', [['Seen', 'Patients seen'], ['Waiting', 'Waiting to be seen'], ['Admitted', 'Admitted'], ['Critical', 'Admitted: critical care bed'],
+              ['MedSurg', 'Admitted: medical/surgical bed'], ['PedsBed', 'Admitted: pediatric bed'], ['Discharged', 'Discharged'], ['Transferred', 'Transferred'], ['Expired', 'Expired']],
+            [['Adult', 'Adult'], ['Peds', 'Pediatric (under 18)'], ['Total', 'Total'], ['Note', 'Comments', 'text', 300]]);
+            return m;
+          })()),
+        hPrepared('4', 'Patient Tracking Manager')
+      ]
+    },
+
+    h260: {
+      type: 'h260', group: 'form', scope: 'many', hics: true, phi: true,
+      code: 'HICS 260', title: 'Patient Evacuation Tracking Form',
+      blocks: [
+        { title: 'Patient', fields: [
+          day('date', 'Date', { def: 'today' }), text('fromUnit', 'From (unit)', { required: true }), text('name', 'Patient name', { required: true }),
+          day('dob', 'Date of birth'), text('mrn', 'Medical record number', { max: 40 }), text('diagnosis', 'Diagnosis', { max: 300 }), text('physician', 'Admitting physician')
+        ] },
+        { title: 'Family notified', fields: [choice('family', 'Family notified', ['Yes', 'No']), text('familyName', 'Name'), text('familyContact', 'Contact information', { max: 160 })] },
+        { title: 'Mode of transport', fields: [choice('mode', 'Mode of transport', ['Hospital bed', 'Gurney', 'Wheelchair', 'Ambulatory', 'Other']), text('modeOther', 'Other', { max: 120 })] },
+        {
+          title: 'Accompanying equipment',
+          fields: [checks('equipment', 'Accompanying equipment', ['IV pump(s)', 'Oxygen', 'Ventilator', 'Chest tube(s)', 'Isolette/warmer', 'Traction', 'Monitor', 'A-line/Swan', 'Foley catheter', 'Halo device', 'Cranial bolt/screw', 'Intraosseous device'], { hideLabel: true }),
+            text('equipmentOther', 'Other equipment', { max: 300 })]
+        },
+        { title: 'Special needs', fields: [area('needs', 'Special needs', { rows: 2, hideLabel: true })] },
+        { title: 'Isolation', fields: [choice('isolation', 'Isolation', ['Yes', 'No']), text('isoType', 'Type'), text('isoReason', 'Reason')] },
+        {
+          title: 'Evacuating clinical location',
+          fields: [text('fromRoom', 'Room #', { max: 40 }), when('fromAt', 'Time'), text('fromIdBy', 'ID band confirmed by'), choice('fromRecord', 'Medical record sent', ['Yes', 'No']),
+            choice('belongings', 'Belongings', ['With patient', 'Left in room', 'None']), choice('valuables', 'Valuables', ['With patient', 'Left in safe', 'None']),
+            choice('meds', 'Medications', ['With patient', 'Left on unit', 'Pharmacy']), choice('bagMask', 'Peds/infants: bag/mask with tubing sent', ['Yes', 'No']),
+            choice('bulb', 'Peds/infants: bulb syringe sent', ['Yes', 'No'])]
+        },
+        {
+          title: 'Arriving location',
+          fields: [text('toRoom', 'Room #', { max: 40 }), when('toAt', 'Time'), text('toIdBy', 'ID band confirmed by'), choice('toRecord', 'Medical record received', ['Yes', 'No']),
+            choice('toBelongings', 'Belongings received', ['Yes', 'No']), choice('toValuables', 'Valuables received', ['Yes', 'No']), choice('toMeds', 'Medications received', ['Yes', 'No']),
+            choice('toBagMask', 'Peds/infants: bag/mask with tubing received', ['Yes', 'No']), choice('toBulb', 'Peds/infants: bulb syringe received', ['Yes', 'No'])]
+        },
+        {
+          title: 'Transferring to another facility or location',
+          fields: [when('stagingAt', 'Time to staging area'), when('departAt', 'Time departing to receiving facility'), text('destination', 'Destination'),
+            choice('transport', 'Transportation', ['Ambulance', 'Helicopter', 'Other']), text('ambulance', 'Ambulance # and agency', { max: 160 }),
+            text('finalIdBy', 'ID band confirmed by'), when('departureAt', 'Departure time')]
+        },
+        hPrepared('16')
+      ]
+    },
+
+    /* A Job Action Sheet in use: who holds the position and which actions are done, with times. */
+    jas: {
+      type: 'jas', group: 'form', scope: 'many', hics: true,
+      code: 'Job Action Sheet', title: 'Job Action Sheet',
+      blocks: [
+        { title: 'Position', fields: [
+          text('position', 'Position', { required: true, list: 'ics-positions' }), text('name', 'Assigned to', { list: 'people', def: 'me' }),
+          when('startedAt', 'Date/time started', { def: 'now' }), text('reportsTo', 'Reports to', { max: 120 }), text('location', 'Command location', { max: 160 }),
+          text('contact', 'Telephone/radio', { max: 80 })
+        ] },
+        {
+          title: 'Actions done',
+          fields: [rows('done', 'Actions done', [text('item', 'Action', { max: 400 }), when('at', 'Done at'), text('by', 'By', { max: 120 })],
+            { addLabel: 'Add action', rowLabel: 'Action', hideLabel: true, maxRows: 200 })]
+        },
+        { title: 'Notes', fields: [area('notes', 'Notes', { rows: 3, hideLabel: true })] }
+      ]
+    }
+  };
+
+  Object.keys(HICS).forEach(function (k) { FORMS[k] = HICS[k]; });
+
+  /* Order on screen and in close-out archives. */
+  var HICS_TYPES = ['hqs', 'h200', 'h201', 'h202', 'h203', 'h204', 'h205a', 'h206', 'h215a', 'h221', 'h251', 'h252', 'h253', 'h254', 'h255', 'h256', 'h257', 'h258', 'h259', 'h260', 'jas'];
+  var PHI_TYPES = HICS_TYPES.filter(function (t) { return FORMS[t].phi; });
+
   var RECORD_TYPES = Object.keys(FORMS);
   var FORM_TYPES = ['201', '202', '203', '204', '205', '205A', '206', '208', '209', '211', '213', '213RR', '215', '215A', '221'];
   var ASSESS_TYPES = ['daHome', 'daSite'];
@@ -1433,6 +2000,9 @@
     CATEGORY_LIST: CATEGORY_LIST,
     CHECKIN_LOCATIONS: CHECKIN_LOCATIONS,
     POSITIONS: POSITIONS,
+    HICS_POSITIONS: HICS_POSITIONS,
+    HICS_TYPES: HICS_TYPES,
+    PHI_TYPES: PHI_TYPES,
     fieldsOf: fieldsOf,
     fieldByKey: fieldByKey
   };

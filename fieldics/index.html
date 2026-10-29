@@ -126,6 +126,14 @@
           </div>
         </div>
       </fieldset>
+      <div class="field">
+        <label for="incSystem">Command system</label>
+        <select id="incSystem">
+          <option value="ics">ICS (county, city, or agency)</option>
+          <option value="hics">HICS (hospital)</option>
+        </select>
+        <p class="hint">HICS uses the Hospital Incident Command System forms, positions, and Job Action Sheets, with patient tracking.</p>
+      </div>
       <label class="check top field" for="incExercise"><input type="checkbox" id="incExercise"> This is an exercise or drill. Every screen, printout, PDF, and package file is marked EXERCISE, and pilot metrics count it separately.</label>
       <details id="incCostBox" class="field">
         <summary>Cost recovery details (for the PA cost summary)</summary>
@@ -250,6 +258,10 @@
       <div class="field">
         <label class="check top" for="expNoPhotos"><input type="checkbox" id="expNoPhotos"> Leave out photos</label>
         <p class="hint" id="expPhotosNote"></p>
+        <div id="expPatientsBox" hidden>
+          <label class="check top" for="expNoPatients"><input type="checkbox" id="expNoPatients"> Leave out patient records (HICS 254, 255, 260)</label>
+          <p class="hint">This incident has patient information. A file that carries it must be locked with a passphrase.</p>
+        </div>
       </div>
       <div class="field">
         <label for="expPass">Passphrase (optional)</label>
@@ -394,6 +406,7 @@
   <script src="js/costbook.js"></script>
   <script src="js/assess.js"></script>
   <script src="js/practice.js"></script>
+  <script src="js/hics-jas.js"></script>
   <script src="js/checks.js"></script>
   <script src="js/setup.js"></script>
   <script src="js/metrics.js"></script>
@@ -426,6 +439,7 @@
   <script src="js/app/closeout.js"></script>
   <script src="js/app/sync.js"></script>
   <script src="js/app/help.js"></script>
+  <script src="js/app/hics.js"></script>
   <script src="js/app/main.js"></script>
 </body>
 </html>

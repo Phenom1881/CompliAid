@@ -140,9 +140,11 @@
 
   function openIAPCheck(inc, n) {
     commitSession('quiet');
-    var found = Checks.iap(inc, n);
+    var found = inc.hics ? Checks.hicsIap(inc, n) : Checks.iap(inc, n);
     var body = openPanel('IAP check: operational period ' + n);
-    body.appendChild(h('p', { class: 'hint', text: 'Checks the 202, 203, 204s, and 205 for this period, and the 205A, 206, 207, and 208 when the 202 lists them, before a briefing. It looks for missing forms and blocks, not whether the plan is right.' }));
+    body.appendChild(h('p', { class: 'hint', text: inc.hics
+      ? 'Checks the HICS 202 (or IAP Quick Start), 203, 204s, 206, 215A, and 200 cover sheet for this period before a briefing. It looks for missing forms and blocks, not whether the plan is right.'
+      : 'Checks the 202, 203, 204s, and 205 for this period, and the 205A, 206, 207, and 208 when the 202 lists them, before a briefing. It looks for missing forms and blocks, not whether the plan is right.' }));
     body.appendChild(findingList(found, 'The IAP forms for period ' + n + ' are filled in.'));
     body.appendChild(h('div', { class: 'row end' }, btn('Print IAP', function () { closePanel(); printIAP(inc, n); }, 'btn-primary')));
   }
